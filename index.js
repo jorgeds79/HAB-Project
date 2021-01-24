@@ -20,6 +20,8 @@ const {
     uploadBook
 } = require('./controllers/books')
 
+const search = require('./db/queryConstructor')
+
 const {
     deleteChat,
     deleteMessage,
@@ -211,10 +213,10 @@ app.post('/user/requests/new', isAuthenticated, setPetition)
 app.get('/user/requests', isAuthenticated, getPetitions)
 
 
-
-
-
-
+/**
+ * Búsquedas de libro por filtros
+ */
+app.get('/books', search)
 
 
 
