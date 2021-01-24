@@ -1,6 +1,8 @@
 const db = require('../db/mysql')
 const utils = require('../utils/utils')
 
+const { transferValidator } = require('../validators/transfer')
+
 const createTransaction = async (req, res) => {
     const { id } = req.params;
     const decodedToken = req.auth
@@ -44,12 +46,18 @@ const createTransaction = async (req, res) => {
 
 const confirmTransaction = async (req, res) => {
     const { id } = req.params;
+    const { place, date } = req.body
     const decodedToken = req.auth
 
     try {
+        // antes de actualizar con lugar y fecha de entrega se valida que éstos vayan en el formato correcto
+        // con un validator
+        await transferValidator.validateAsync(req.body)
+
         const transaction = await db.getTransaction(id)
         const book = await db.getBook(transaction.id_book)
         let buyer = await db.getUserById(transaction.id_buyer)
+        console.log(transaction)
         // Verificamos que el usuario que confirma
         // la transaccion es el propio vendedor
         if (decodedToken.id !== book.id_user) {
@@ -63,19 +71,19 @@ const confirmTransaction = async (req, res) => {
         // informativos, y se pasa el estado 
         // del libro a 'no disponible'
 
-        await db.completeTransaction(id)
-        // utils.sendCompletedTransactionMail(decodedToken.email, buyer.email, book.title, book.course, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+        await db.completeTransaction(id, place, date)
+        // utils.sendCompletedTransactionMail(decodedToken.email, buyer.email, book.title, book.course, place, date, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
         await db.deleteBook(transaction.id_book)
         
-        let cancelled = await db.getTransactionsToCancel(book.id)
+        // let cancelled = await db.getTransactionsToCancel(book.id)
         
-        if (cancelled) {
-            for (let item of cancelled) {
-                buyer = await db.getUserById(item.id_buyer)
-                await db.cancelTransaction(item.id)
-                // utils.sendCanceledTransactionMail(decodedToken.email, buyer.email, book.title, book.course, id, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
-            }
-        }
+        // if (cancelled) {
+        //     for (let item of cancelled) {
+        //         buyer = await db.getUserById(item.id_buyer)
+        //         await db.cancelTransaction(item.id)
+        //         // utils.sendCanceledTransactionMail(decodedToken.email, buyer.email, book.title, book.course, id, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+        //     }
+        // }
     } catch (e) {
         let statusCode = 400;
         // averiguar el tipo de error para enviar un código u otro
@@ -105,7 +113,10 @@ const cancelTransaction = async (req, res) => {
             return
         }
         await db.cancelTransaction(id)
-        // utils.sendCanceledTransactionMail(decodedToken.email, buyer.email, book.title, book.course, id, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+        getPetitions,
+        setPetition,
+        updateBook,
+        uploadBook  // utils.sendCanceledTransactionMail(decodedToken.email, buyer.email, book.title, book.course, id, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
     } catch (e) {
         let statusCode = 400;
         // averiguar el tipo de error para enviar un código u otro

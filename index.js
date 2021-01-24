@@ -117,6 +117,11 @@ app.post('/booking/:id', isAuthenticated, createTransaction)
 
 /**
  * Aceptar venta de libro
+ * cuando el vendedor pulsa en "confirmar",
+ * el sistema le indica que introduzca el 
+ * lugar y la fecha de entrega del libro,
+ * una vez introducidos éstos, al confirmar
+ * vamos al siguiente endpoint:
  */
 app.put('/confirm-transaction/:id', isAuthenticated, confirmTransaction)
 

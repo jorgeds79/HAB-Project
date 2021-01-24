@@ -110,7 +110,7 @@ const sendBookingMail = async (sellerMail, buyerMail, title, curso, link) => {
 
 }
 
-const sendCompletedTransactionMail = async (sellerMail, buyerMail, title, curso, link) => {
+const sendCompletedTransactionMail = async (sellerMail, buyerMail, title, curso, place, date, link) => {
   sendgrid.setApiKey(process.env.EMAIL_API_KEY);
 
   const sellerMessage = {
@@ -121,8 +121,8 @@ const sendCompletedTransactionMail = async (sellerMail, buyerMail, title, curso,
       html: `
       <div>
         <h1> Transacción completada </h1>
-        <p> Accede a tu cuenta para comprobar el estado
-        de tus libros </p>
+        <p> La entrega será en ${place} en la fecha ${date}.
+        Accede a tu cuenta para comprobar el estado de tus libros </p>
 
         ${link}
       </div>
@@ -137,8 +137,8 @@ const sendCompletedTransactionMail = async (sellerMail, buyerMail, title, curso,
       html: `
       <div>
         <h1> Compra finalizada </h1>
-        <p> ¿Que tal ha ido? Accede a tu cuenta y 
-        envíale una valoración al vendedor </p>
+        <p> La entrega será en ${place} en la fecha ${date}. Después de la entrega
+        accede a tu cuenta y envíale una valoración al vendedor </p>
 
         ${link}
       </div>

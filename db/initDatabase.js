@@ -77,6 +77,8 @@ async function main() {
         id_buyer integer not null,
         review enum('Mal', 'Regular', 'Bien', 'Muy bien'),
         status enum('completado', 'en proceso', 'cancelado') default 'en proceso',
+        transfer_location varchar(50),
+        transfer_date  timestamp,
         creation_date timestamp not null default current_timestamp,
         update_date timestamp not null default current_timestamp on update current_timestamp,
         constraint transactions_idbook_fk1 foreign key (id_book)

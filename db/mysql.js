@@ -88,9 +88,9 @@ const checkValidationCodeForPassword = async (code) => {
     }
 }
 
-const completeTransaction = async (id) => {
-    const query = `update transactions set status = 'completado' where id=?`
-    const params = [id]
+const completeTransaction = async (id, place, date) => {
+    const query = `update transactions SET transfer_place = ?, transfer_date = ?, status = 'completado' where id=?`
+    const params = [place, date, id]
 
     await performQuery(query, params)
 }
