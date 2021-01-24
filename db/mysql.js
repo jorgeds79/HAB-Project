@@ -41,7 +41,7 @@ const checkChat = async (id_book, id_buyer) => {
 }
 
 const checkRequests = async (isbn) => {
-    const query = `select email from users where petition_book_1=? or petition_book_2=? or petition_book_3=? and active=true`
+    const query = `select email, active from users where petition_book_1=? or petition_book_2=? or petition_book_3=?`
     const params = [isbn, isbn, isbn]
 
     const result = await performQuery(query, params)
@@ -180,6 +180,13 @@ const getMessagesOfChat = async (id_chat) => {
     return result
 }
 
+const getPetitionsOfUser = async (id) => {
+    const query = `select petition_book_1, petition_book_2, petition_book_3 from users where id = ?`
+    const params = [id]
+    
+    const result = await performQuery(query, params)
+    return result
+}
 
 const getSellerByIdBook = async (id) => {
     const query = `select * from users where id = (select id_user from books where id=?)`
@@ -269,6 +276,13 @@ const setMessagesToViewed = async (id_chat, idUser) => {
     await performQuery(query, params)
 }
 
+const setPetitionOfUser = async (id, isbn, index) => {
+    const query = `update users SET petition_book_${index} = ? where id = ?`
+    const params = [isbn, id]
+    
+    await performQuery(query, params)
+}
+
 const updateBook = async (isbn, title, course, editorial, editionYear, price, detail, id) => {
     const query = `update books SET isbn = ?,
             title = ?,
@@ -330,6 +344,7 @@ module.exports = {
     getListOfTransactionsOfUser,
     getMessageById,
     getMessagesOfChat,
+    getPetitionsOfUser,
     getSellerByIdBook,
     getSellerAndBuyerOfChat,
     getTransaction,
@@ -339,6 +354,7 @@ module.exports = {
     register,
     sendMessage,
     setMessagesToViewed,
+    setPetitionOfUser,
     updateBook,
     updatePassword,
     updateTransactionWithReview,

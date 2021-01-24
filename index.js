@@ -14,6 +14,8 @@ const {
 } = require('./controllers/authentication')
 
 const {
+    getPetitions,
+    setPetition,
     updateBook,
     uploadBook
 } = require('./controllers/books')
@@ -195,6 +197,18 @@ app.put('/messages-chat/deletemsg/:id', isAuthenticated, deleteMessage)
  * Borrar chat
  */
 app.put('/messages-chat/deletechat/:id', isAuthenticated, deleteChat)
+
+
+/**
+ * Realizar/modificar petición
+ */
+app.post('/user/requests/new', isAuthenticated, setPetition)
+
+
+/**
+ * Ver peticiones realizadas
+ */
+app.get('/user/requests', isAuthenticated, getPetitions)
 
 
 

@@ -1,14 +1,14 @@
 const sendgrid = require("@sendgrid/mail");
 
 const sendConfirmationMail = async (email, link) => {
-    sendgrid.setApiKey(process.env.EMAIL_API_KEY);
+  sendgrid.setApiKey(process.env.EMAIL_API_KEY);
 
-    const message = {
-        to: email,
-        from: 'patarrata@gmail.com',
-        subject: 'Validate your account',
-        text: `La dirección de verificación es: ${link}`,
-        html: `
+  const message = {
+      to: email,
+      from: 'patarrata@gmail.com',
+      subject: 'Validate your account',
+      text: `La dirección de verificación es: ${link}`,
+      html: `
         <div>
           <h1> Valida tu registro </h1>
           <p> Si te has registrado en el sistema, accede al siguiente
@@ -17,10 +17,10 @@ const sendConfirmationMail = async (email, link) => {
           ${link}
         </div>
       `,
-    };
+  };
 
-    // Enviar mensaje
-    await sendgrid.send(message);
+  // Enviar mensaje
+  await sendgrid.send(message);
 }
 
 const sendVerificationMail = async (email, link) => {
@@ -238,13 +238,37 @@ const sendMessageReceivedMail = async (email, title, link) => {
   await sendgrid.send(message);
 }
 
+const sendPetitionRequiredMail = async (email, isbn, title, link) => {
+  sendgrid.setApiKey(process.env.EMAIL_API_KEY);
+
+  const message = {
+      to: email,
+      from: 'patarrata@gmail.com',
+      subject: 'Your ISBN petition is already available',
+      text: `Ya está disponible el libro: ${title}`,
+      html: `
+      <div>
+        <h1> Libro solicitado ya disponible </h1>
+        <p> Ya está disponible el libro con ISBN: ${isbn}.
+         Accede a tu cuenta y realiza tu compra: </p>
+
+        ${link}
+      </div>
+    `,
+  };
+
+  // Enviar mensaje
+  await sendgrid.send(message);
+}
+
 module.exports = {
-    sendBookingMail,
-    sendCanceledTransactionMail,
-    sendCompletedTransactionMail,
-    sendConfirmationMail,
-    sendMessageReceivedMail,
-    sendRecoverPasswordMail,
-    sendRecoveredPasswordMail,
-    sendVerificationMail
+  sendBookingMail,
+  sendCanceledTransactionMail,
+  sendCompletedTransactionMail,
+  sendConfirmationMail,
+  sendMessageReceivedMail,
+  sendPetitionRequiredMail,
+  sendRecoverPasswordMail,
+  sendRecoveredPasswordMail,
+  sendVerificationMail
 }
