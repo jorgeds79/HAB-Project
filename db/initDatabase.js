@@ -63,7 +63,8 @@ async function main() {
 
     await connection.query(`
       CREATE TABLE images (
-        id varchar(100) primary key,
+        id integer auto_increment primary key,
+        uuid varchar(100) not null,
 	      id_book integer not null,
         constraint images_idbook_fk1 foreign key (id_book)
 		      references books(id) on delete no action
@@ -77,7 +78,7 @@ async function main() {
         id_buyer integer not null,
         review enum('Mal', 'Regular', 'Bien', 'Muy bien'),
         status enum('completado', 'en proceso', 'cancelado') default 'en proceso',
-        transfer_location varchar(50),
+        transfer_place varchar(50),
         transfer_date  timestamp,
         creation_date timestamp not null default current_timestamp,
         update_date timestamp not null default current_timestamp on update current_timestamp,

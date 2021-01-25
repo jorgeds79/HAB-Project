@@ -326,6 +326,14 @@ const uploadBook = async (isbn, title, course, editorial, editionYear, price, de
     await performQuery(query, params)
 }
 
+const uploadImage = async (uuid, id_book) => {
+    const query = `INSERT INTO images(uuid, id_book)
+    VALUES(?, ?)`
+    const params = [uuid, id_book]
+
+    await performQuery(query, params)
+}
+
 module.exports = {
     cancelTransaction,
     checkChat,
@@ -359,5 +367,6 @@ module.exports = {
     updatePassword,
     updateTransactionWithReview,
     updateValidationCode,
-    uploadBook
+    uploadBook,
+    uploadImage
 }

@@ -2,6 +2,7 @@ require('dotenv').config()
 
 const bodyParser = require('body-parser')
 const express = require('express')
+const fileUpload = require("express-fileupload");
 
 const {
     login,
@@ -17,10 +18,9 @@ const {
     getPetitions,
     setPetition,
     updateBook,
-    uploadBook
+    uploadBook,
+    uploadImageBook
 } = require('./controllers/books')
-
-const search = require('./db/queryConstructor')
 
 const {
     deleteChat,
@@ -42,11 +42,14 @@ const {
     putReviewToSeller
 } = require('./controllers/transactions')
 
+const search = require('./db/queryConstructor')
+
 const {
     isAuthenticated
 } = require('./middlewares/auth')
 
 const app = express()
+
 
 /**
  * Los siguientes middlewares son necesarios para 
@@ -55,6 +58,8 @@ const app = express()
  */
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
+// peticiones de tipo form-data, necesarias para enviar ficheros
+app.use(fileUpload());
 
 const DEFAULT_PORT = 3333
 
@@ -136,6 +141,12 @@ app.put('/booking-cancel/:id', isAuthenticated, cancelTransaction)
  * Actualizar datos de un libro
  */
 app.put('/update-book/:id', isAuthenticated, updateBook)
+
+
+/**
+ * Subir foto de un libro
+ */
+app.post('/update-book/photo/:id', isAuthenticated, uploadImageBook)
 
 
 /**
