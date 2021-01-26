@@ -66,7 +66,8 @@ async function main() {
       CREATE TABLE images (
         id integer auto_increment primary key,
         uuid varchar(100) not null,
-	      id_book integer not null,
+        id_book integer not null,
+        visible boolean default true,
         constraint images_idbook_fk1 foreign key (id_book)
 		      references books(id) on delete no action
       )

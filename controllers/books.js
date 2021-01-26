@@ -81,8 +81,7 @@ const updateBook = async (req, res) => {
         }
 
         await db.updateBook(isbn, title, course, editorial, editionYear, price, detail, id)
-        console.log(req.files)
-
+        
         if (req.files) {
             // si hiciese falta comprobar la extensión del fichero
             // podríamos hacerlo aquí a partir de la información de req.files
@@ -102,6 +101,88 @@ const updateBook = async (req, res) => {
             // front llamará al GET con el UUID correspondiente
             await db.uploadImage(outputFileName, id)
         }
+
+    } catch (e) {
+        let statusCode = 400;
+        // averiguar el tipo de error para enviar un código u otro
+        if (e.message === 'database-error') {
+            statusCode = 500
+        }
+
+        res.status(statusCode).send(e.message)
+        return
+    }
+
+    res.send('Datos actualizados correctamente')
+}
+
+const addImageBook = async (req, res) => {
+    const { id } = req.params
+    const decodedToken = req.auth
+
+    try {
+        const book = await db.getBook(id)
+
+        if (decodedToken.id !== book.id_user) {
+            res.status(400).send()
+            return
+        }
+
+        console.log(req.files)
+        if (req.files) {
+            // si hiciese falta comprobar la extensión del fichero
+            // podríamos hacerlo aquí a partir de la información de req.files
+            // y enviar un error si no es el tipo que nos interesa (res.status(400).send())
+
+            await fsPromises.mkdir(`${process.env.TARGET_FOLDER}/books`, { recursive: true })
+
+
+            const fileID = uuid.v4()
+            const outputFileName = `${process.env.TARGET_FOLDER}/books/${fileID}.jpg`
+
+            await fsPromises.writeFile(outputFileName, req.files.image.data)
+
+            // guardar una referencia a este UUID En la base de datos, de forma que
+            // cuando nos pidan la lista de nuestros recursos (productos, conciertos, etc) o 
+            // el detalle de uno de ellos, accedemos a la BBDD para leer los UUID, y después el
+            // front llamará al GET con el UUID correspondiente
+            await db.uploadImage(outputFileName, id)
+        }
+
+    } catch (e) {
+        let statusCode = 400;
+        // averiguar el tipo de error para enviar un código u otro
+        if (e.message === 'database-error') {
+            statusCode = 500
+        }
+
+        res.status(statusCode).send(e.message)
+        return
+    }
+
+    res.send('Datos actualizados correctamente')
+}
+
+const deleteImageBook = async (req, res) => {
+    const { id } = req.params
+    const decodedToken = req.auth
+
+    try {
+        const image = await db.getImage(id)
+        let book = {}
+        if (image) {
+            book = await db.getBook(image.id_book)
+        } else {
+            res.status(400).send()
+            return
+        }
+        
+        if (decodedToken.id !== book.id_user) {
+            res.status(400).send()
+            return
+        }
+
+        await db.deleteImageBook(id)
 
     } catch (e) {
         let statusCode = 400;
@@ -163,6 +244,8 @@ const setPetition = async (req, res) => {
 }
 
 module.exports = {
+    addImageBook,
+    deleteImageBook,
     getPetitions,
     goToActivateBook,
     setPetition,

@@ -10,6 +10,7 @@ const { emailValidator } = require('../validators/email')
 const { logValidator } = require('../validators/log')
 const { newPassValidator } = require('../validators/newPass')
 const { passValidator } = require('../validators/pass')
+const { updateProfileValidator } = require('../validators/updateProfile')
 
 
 const register = async (req, res) => {
@@ -253,6 +254,31 @@ const updateRecoveredPassword = async (req, res) => {
     res.send('Contraseña actualizada correctamente')
 }
 
+const updateProfile = async (req, res) => {
+    const { id } = req.params
+    const decodedToken = req.auth
+    const { name, surnames, address, location, phone } = req.body
+       
+    try {
+        
+        await updateProfileValidator.validateAsync(req.body)
+        const user = await db.getUserById(id)
+           
+        if (decodedToken.id !== user.id || !user.active) {
+            res.status(400).send()
+            return
+        }
+
+        await db.updateProfile(name, surnames, address, location, phone, id)
+    
+    } catch (e) {
+        res.status(400).send()
+        return
+    }
+
+    res.send()
+}
+
 
 
 module.exports = {
@@ -260,6 +286,7 @@ module.exports = {
     login,
     recoverPassword,
     register,
+    updateProfile,
     updateRecoveredPassword,
     updateUserPassword,
     validateRegister   

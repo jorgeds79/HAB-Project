@@ -141,6 +141,12 @@ const deleteChatAsSeller = async (id, id_user) => {
     await performQuery(query, params)
 }
 
+const deleteImageBook = async (id) => {
+    const query = `update images set visible = false where id=?`
+    const params = [id]
+
+    await performQuery(query, params)
+}
 
 const deleteMessageAsBuyer = async (id) => {
     const query = `update messages set visibleForBuyer = false where id=?`
@@ -166,6 +172,14 @@ const getAllMessagesOfUser = async (id) => {
 
 const getBook = async (id) => {
     const query = `select * from books where id = ?`
+    const params = [id]
+
+    const [result] = await performQuery(query, params)
+    return result
+}
+
+const getImage = async (id) => {
+    const query = `select * from images where id = ?`
     const params = [id]
 
     const [result] = await performQuery(query, params)
@@ -321,6 +335,19 @@ const updatePassword = async (idUser, password) => {
     await performQuery(query, params)
 }
 
+const updateProfile = async(name, surnames, address, location, phone, id) => {
+    const query = `update users SET name = ?,
+            surnames = ?,
+            address = ?,
+            location = ?,
+            phone = ?
+            where id = ?`
+    const params = [name, surnames, address, location, phone, id]        
+    
+        
+    await performQuery(query, params)
+}
+
 const updateTransactionWithReview = async (id, review) => {
     const query = `update transactions SET review = ? where id=?`
     const params = [review, id]
@@ -364,10 +391,12 @@ module.exports = {
     deleteBook,
     deleteChatAsBuyer,
     deleteChatAsSeller,
+    deleteImageBook,
     deleteMessageAsBuyer,
     deleteMessageAsSeller,
     getAllMessagesOfUser,
     getBook,
+    getImage,
     getListOfTransactionsOfUser,
     getMessageById,
     getMessagesOfChat,
@@ -384,6 +413,7 @@ module.exports = {
     setPetitionOfUser,
     updateBook,
     updatePassword,
+    updateProfile,
     updateTransactionWithReview,
     updateValidationCode,
     uploadBook,

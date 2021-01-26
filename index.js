@@ -11,10 +11,13 @@ const {
     register,
     updateRecoveredPassword,
     updateUserPassword,
+    updateProfile,
     validateRegister
 } = require('./controllers/authentication')
 
 const {
+    addImageBook,
+    deleteImageBook,
     getPetitions,
     goToActivateBook,
     setPetition,
@@ -117,7 +120,7 @@ app.put('/update-reset-password/:id', updateRecoveredPassword)
 /**
  * Actualizar perfil del usuario
  */
-// app.put('/user/profile/:id', isAuthenticated, updateProfile)
+app.put('/user/profile/:id', isAuthenticated, updateProfile)    
 
 
 /**
@@ -159,6 +162,18 @@ app.put('/booking-cancel/:id', isAuthenticated, cancelTransaction)
  * Actualizar datos de un libro
  */
 app.put('/update-book/:id', isAuthenticated, updateBook)
+
+
+/**
+ * Añadir foto de un libro
+ */
+app.put('/update-book/images/:id', isAuthenticated, addImageBook)
+
+
+/**
+ * Borrar foto de un libro
+ */
+app.delete('/update-book/images/delete/:id', isAuthenticated, deleteImageBook)
 
 
 /**
