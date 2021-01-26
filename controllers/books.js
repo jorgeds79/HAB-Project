@@ -1,6 +1,8 @@
 const db = require('../db/mysql')
+const utils = require('../utils/utils')
 
 const uuid = require('uuid');
+const randomstring = require("randomstring");
 
 const fsPromises = require('fs').promises
 
@@ -13,16 +15,11 @@ const uploadBook = async (req, res) => {
     try {
         await bookValidator.validateAsync(req.body)
 
-        await db.uploadBook(isbn, title, course, editorial, editionYear, price, detail, decodedToken.id)
+        const activationCode = randomstring.generate(40);
 
-        const requests = await db.checkRequests(isbn)
+        await db.uploadBook(isbn, title, course, editorial, editionYear, price, detail, activationCode, decodedToken.id)
 
-        if (requests.length > 0) {
-            const actives = requests.filter(user => user.active)
-            for (let user of actives) {
-                // utils.sendPetitionRequiredMail(email, isbn, title, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
-            }
-        }
+        utils.sendReqAuthorizationMail(isbn, title, course, editorial, editionYear, price, detail, `http://${process.env.PUBLIC_DOMAIN}/upload/activate/${activationCode}`)
 
     } catch (e) {
         let statusCode = 400;
@@ -38,37 +35,33 @@ const uploadBook = async (req, res) => {
     res.send()
 }
 
-const uploadImageBook = async (req, res) => {
-    const { id } = req.params
-    const decodedToken = req.auth
+const goToActivateBook = async (req, res) => {
+    // http://ip:puerto/upload/activate/lkj414j234lkj23142134lk2j34lñk2j42334
+    const { code } = req.params;
 
     try {
-        const book = await db.getBook(id)
-        if (decodedToken.id !== book.id_user) {
-            res.status(500).send()
+        const book = await db.checkBookActivationCode(code)
+        if (book) {
+            await db.activateBook(book.id)
+            const user = await db.getUserById(book.id_user)
+            // utils.sendConfirmationUploadedMail(user.email, book.isbn, book.title, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+        } else {
+            res.status(400).send()
             return
         }
-        // si hiciese falta comprobar la extensión del fichero
-        // podríamos hacerlo aquí a partir de la información de req.files
-        // y enviar un error si no es el tipo que nos interesa (res.status(400).send())
+        // comprobamos posibles peticiones de usuarios de ese isbn
+        const requests = await db.checkRequests(book.isbn)
 
-        await fsPromises.mkdir(`${process.env.TARGET_FOLDER}/books`, { recursive: true })
+        if (requests.length > 0) {
+            const actives = requests.filter(user => user.active)
+            for (let user of actives) {
+                // utils.sendPetitionRequiredMail(email, isbn, title, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+            }
+        }
 
-
-        const fileID = uuid.v4()
-        const outputFileName = `${process.env.TARGET_FOLDER}/books/${fileID}.jpg`
-
-        await fsPromises.writeFile(outputFileName, req.files.image.data)
-
-        // guardar una referencia a este UUID En la base de datos, de forma que
-        // cuando nos pidan la lista de nuestros recursos (productos, conciertos, etc) o 
-        // el detalle de uno de ellos, accedemos a la BBDD para leer los UUID, y después el
-        // front llamará al GET con el UUID correspondiente
-        await db.uploadImage(outputFileName, id)
-        res.send(outputFileName)
+        res.send('Validado correctamente')
     } catch (e) {
-        console.log('Error: ', e)
-        res.status(500).send()
+        res.status(401).send('Usuario no validado')
     }
 }
 
@@ -88,6 +81,27 @@ const updateBook = async (req, res) => {
         }
 
         await db.updateBook(isbn, title, course, editorial, editionYear, price, detail, id)
+        console.log(req.files)
+
+        if (req.files) {
+            // si hiciese falta comprobar la extensión del fichero
+            // podríamos hacerlo aquí a partir de la información de req.files
+            // y enviar un error si no es el tipo que nos interesa (res.status(400).send())
+
+            await fsPromises.mkdir(`${process.env.TARGET_FOLDER}/books`, { recursive: true })
+
+
+            const fileID = uuid.v4()
+            const outputFileName = `${process.env.TARGET_FOLDER}/books/${fileID}.jpg`
+
+            await fsPromises.writeFile(outputFileName, req.files.image.data)
+
+            // guardar una referencia a este UUID En la base de datos, de forma que
+            // cuando nos pidan la lista de nuestros recursos (productos, conciertos, etc) o 
+            // el detalle de uno de ellos, accedemos a la BBDD para leer los UUID, y después el
+            // front llamará al GET con el UUID correspondiente
+            await db.uploadImage(outputFileName, id)
+        }
 
     } catch (e) {
         let statusCode = 400;
@@ -150,8 +164,8 @@ const setPetition = async (req, res) => {
 
 module.exports = {
     getPetitions,
+    goToActivateBook,
     setPetition,
     updateBook,
     uploadBook,
-    uploadImageBook
 }

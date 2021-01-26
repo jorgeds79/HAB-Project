@@ -23,12 +23,29 @@ const performQuery = async (query, params) => {
     }
 }
 
+const activateBook = async (id) => {
+    const query = `update books SET available = true where id=?`
+    const params = [id]
+
+    await performQuery(query, params)
+}
+
 const cancelTransaction = async (id) => {
     const query = `update transactions set status = 'cancelado' where id=?`
     const params = [id]
 
     await performQuery(query, params)
 }
+
+const checkBookActivationCode = async (code) => {
+    // comprobar si existe un libro que esté pendiente de activación
+    const query = `select * from books where activationCode = ?`
+    const params = [code]
+
+    const [result] = await performQuery(query, params)
+    return result;
+    
+   }
 
 const checkChat = async (id_book, id_buyer) => {
     // comprobamos si ya existe un chat previo entre 
@@ -318,10 +335,10 @@ const updateValidationCode = async (email, validationCode) => {
     await performQuery(query, params)
 }
 
-const uploadBook = async (isbn, title, course, editorial, editionYear, price, detail, idUser) => {
-    const query = `INSERT INTO books(id_user, isbn, title, course, editorial, editionYear, price, detail)
-    VALUES(?, ?, ?, ?, ?, ?, ?, ?)`
-    const params = [idUser, isbn, title, course, editorial, editionYear, price, detail]
+const uploadBook = async (isbn, title, course, editorial, editionYear, price, detail, activationCode, idUser) => {
+    const query = `INSERT INTO books(id_user, isbn, title, course, editorial, editionYear, price, detail, activationCode)
+    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    const params = [idUser, isbn, title, course, editorial, editionYear, price, detail, activationCode]
 
     await performQuery(query, params)
 }
@@ -335,7 +352,9 @@ const uploadImage = async (uuid, id_book) => {
 }
 
 module.exports = {
+    activateBook,
     cancelTransaction,
+    checkBookActivationCode,
     checkChat,
     checkRequests,
     checkValidationCode,

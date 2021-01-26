@@ -261,14 +261,69 @@ const sendPetitionRequiredMail = async (email, isbn, title, link) => {
   await sendgrid.send(message);
 }
 
+const sendReqAuthorizationMail = async (isbn, title, course, editorial, editionYear, price, detail, link) => {
+  sendgrid.setApiKey(process.env.EMAIL_API_KEY);
+  console.log(process.env.ADMIN_EMAIL)
+  const message = {
+      to: `${process.env.ADMIN_EMAIL}`,
+      from: 'patarrata@gmail.com',
+      subject: 'New book in the platform, check and validate',
+      text: `Se ha subido un nuevo libro: ${title}`,
+      html: `
+      <div>
+        <h1> Nuevo libro subido, datos: </h1>
+        <p>Título: ${title}</p>
+        <p>ISBN: ${isbn}</p>
+        <p>Curso: ${course}</p>
+        <p>Editorial: ${editorial}</p>
+        <p>Año de edición: ${editionYear}</p>
+        <p>Precio: ${price}</p>
+        <p>Detalle: ${detail}</p>
+        <p> Para confirmar su activación pincha en el 
+        siguiente enlace y se activará automáticamente: </p>
+
+        ${link}
+      </div>
+    `,
+  };
+
+  // Enviar mensaje
+  await sendgrid.send(message);
+}
+
+const sendConfirmationUploadedMail = async (email, isbn, title, link) => {
+  sendgrid.setApiKey(process.env.EMAIL_API_KEY);
+
+  const message = {
+      to: email,
+      from: 'patarrata@gmail.com',
+      subject: 'Your book has been activated!',
+      text: `El libro con título ${title} y ISBN ${isbn} ha sido activado`,
+      html: `
+        <div>
+          <h1> Accede a tu cuenta</h1>
+          <p> Accede ya a tu cuenta y revisa el estado
+          de tus libros: </p>
+
+          ${link}
+        </div>
+      `,
+  };
+
+  // Enviar mensaje
+  await sendgrid.send(message);
+}
+
 module.exports = {
   sendBookingMail,
   sendCanceledTransactionMail,
   sendCompletedTransactionMail,
   sendConfirmationMail,
+  sendConfirmationUploadedMail,
   sendMessageReceivedMail,
   sendPetitionRequiredMail,
   sendRecoverPasswordMail,
   sendRecoveredPasswordMail,
+  sendReqAuthorizationMail,
   sendVerificationMail
 }

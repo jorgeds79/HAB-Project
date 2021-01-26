@@ -53,6 +53,7 @@ async function main() {
         editionYear integer,
         price float not null,
         available boolean default false,
+        activationCode varchar(100),
         detail varchar(200),
         creation_date timestamp not null default current_timestamp,
         update_date timestamp not null default current_timestamp on update current_timestamp,

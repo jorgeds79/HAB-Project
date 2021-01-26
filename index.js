@@ -16,10 +16,10 @@ const {
 
 const {
     getPetitions,
+    goToActivateBook,
     setPetition,
     updateBook,
     uploadBook,
-    uploadImageBook
 } = require('./controllers/books')
 
 const {
@@ -83,6 +83,12 @@ app.get('/user/validate/:code', validateRegister)
 app.post('/user/login', login)
 
 
+// /**
+//  * Desautenticar usuario
+//  */
+// app.post('/user/logout', logout)
+
+
 /**
  * Actualizar la password
  */
@@ -109,9 +115,21 @@ app.put('/update-reset-password/:id', updateRecoveredPassword)
 
 
 /**
+ * Actualizar perfil del usuario
+ */
+// app.put('/user/profile/:id', isAuthenticated, updateProfile)
+
+
+/**
  * Subir un libro
  */
 app.post('/upload', isAuthenticated, uploadBook)
+/**
+ * Endpoint encargado de verificar el codigo de
+ * activación del libro enviado al email del 
+ * administrador para su revision previa 
+ */
+app.get('/upload/activate/:code', goToActivateBook)
 
 
 /**
@@ -141,12 +159,6 @@ app.put('/booking-cancel/:id', isAuthenticated, cancelTransaction)
  * Actualizar datos de un libro
  */
 app.put('/update-book/:id', isAuthenticated, updateBook)
-
-
-/**
- * Subir foto de un libro
- */
-app.post('/update-book/photo/:id', isAuthenticated, uploadImageBook)
 
 
 /**
