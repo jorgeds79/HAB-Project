@@ -302,11 +302,32 @@ const updateProfile = async (req, res) => {
     res.send()
 }
 
+const logout = async (req, res, next) => {
+        
+    try {
+        // si la verificación del token falla (caducado, mal formado, no descifrable
+        // con el SECRET dado) salta una excepción
+        const decodedToken = {}
+
+        req.auth = decodedToken;
+    } catch (e) {
+        res.status(401).send()
+        return
+
+        //        const authError = new Error('invalid token');
+        //        authError.status = 401;
+        //        return next(authError);
+    }
+
+    res.send(req.auth)
+}
+
 
 
 module.exports = {
     goToUpdatePassword,
     login,
+    logout,
     recoverPassword,
     register,
     updateProfile,

@@ -106,10 +106,15 @@ const cancelTransaction = async (req, res) => {
         const transaction = await db.getTransaction(id)
         const book = await db.getBook(transaction.id_book)
         const buyer = await db.getUserById(transaction.id_buyer)
+        
+        if (transaction.status !== 'en proceso') {
+            res.status(400).send()
+            return
+        }
         // Verificamos que el usuario que cancela
         // la transaccion es el vendedor o el comprador
         if (decodedToken.id !== book.id_user && decodedToken.id !== transaction.id_buyer) {
-            res.status(500).send()
+            res.status(400).send()
             return
         }
         await db.cancelTransaction(id)

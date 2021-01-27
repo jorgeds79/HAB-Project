@@ -6,6 +6,7 @@ const fileUpload = require("express-fileupload");
 
 const {
     login,
+    logout,
     goToUpdatePassword,
     recoverPassword,
     register,
@@ -86,10 +87,10 @@ app.get('/user/validate/:code', validateRegister)
 app.post('/user/login', login)
 
 
-// /**
-//  * Desautenticar usuario
-//  */
-// app.post('/user/logout', logout)
+/**
+ * Desautenticar usuario
+ */
+app.post('/user/logout', logout)
 
 
 /**
