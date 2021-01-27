@@ -75,15 +75,15 @@ const confirmTransaction = async (req, res) => {
         // utils.sendCompletedTransactionMail(decodedToken.email, buyer.email, book.title, book.course, place, date, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
         await db.deleteBook(transaction.id_book)
         
-        // let cancelled = await db.getTransactionsToCancel(book.id)
+        let cancelled = await db.getTransactionsToCancel(book.id)
         
-        // if (cancelled) {
-        //     for (let item of cancelled) {
-        //         buyer = await db.getUserById(item.id_buyer)
-        //         await db.cancelTransaction(item.id)
-        //         // utils.sendCanceledTransactionMail(decodedToken.email, buyer.email, book.title, book.course, id, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
-        //     }
-        // }
+        if (cancelled) {
+            for (let item of cancelled) {
+                buyer = await db.getUserById(item.id_buyer)
+                await db.cancelTransaction(item.id)
+                // utils.sendCanceledTransactionMail(decodedToken.email, buyer.email, book.title, book.course, id, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+            }
+        }
     } catch (e) {
         let statusCode = 400;
         // averiguar el tipo de error para enviar un código u otro
@@ -113,10 +113,7 @@ const cancelTransaction = async (req, res) => {
             return
         }
         await db.cancelTransaction(id)
-        getPetitions,
-        setPetition,
-        updateBook,
-        uploadBook  // utils.sendCanceledTransactionMail(decodedToken.email, buyer.email, book.title, book.course, id, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+         // utils.sendCanceledTransactionMail(decodedToken.email, buyer.email, book.title, book.course, id, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
     } catch (e) {
         let statusCode = 400;
         // averiguar el tipo de error para enviar un código u otro
@@ -238,11 +235,18 @@ const putReviewToSeller = async (req, res) => {
     const { id } = req.params;
     const { review } = req.body
     const decodedToken = req.auth
+    const now = new Date();
+    console.log(now)
     try {
         const transaction = await db.getTransaction(id)
         
         if (transaction.id_buyer !== decodedToken.id) {
-            res.status(500).send('Internal server error')
+            res.status(400).send()
+            return
+        }
+
+        if (transaction.transfer_date > now) {
+            res.send('No es posible realizar la valoración antes de realizar la entrega')
             return
         }
         await db.updateTransactionWithReview(id,review)

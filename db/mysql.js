@@ -378,6 +378,13 @@ const uploadImage = async (uuid, id_book) => {
     await performQuery(query, params)
 }
 
+const uploadProfilePhoto = async (filename, id) => {
+    const query = `UPDATE users SET photo=? where id=?`
+    const params = [filename, id]
+
+    await performQuery(query, params)
+}
+
 module.exports = {
     activateBook,
     cancelTransaction,
@@ -417,5 +424,6 @@ module.exports = {
     updateTransactionWithReview,
     updateValidationCode,
     uploadBook,
-    uploadImage
+    uploadImage,
+    uploadProfilePhoto
 }

@@ -128,7 +128,6 @@ const addImageBook = async (req, res) => {
             return
         }
 
-        console.log(req.files)
         if (req.files) {
             // si hiciese falta comprobar la extensión del fichero
             // podríamos hacerlo aquí a partir de la información de req.files
