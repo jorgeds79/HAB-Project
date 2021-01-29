@@ -4,9 +4,7 @@ const { getConnection } = require("./db");
 
 const performQuery = async (query, params) => {
     let connection;
-    console.log(query)
-    console.log(params)
-
+    
     try {
         connection = await getConnection();
 
@@ -101,7 +99,7 @@ const checkValidationCodeForPassword = async (code) => {
         await performQuery(query, id)
         return result;
     } else {
-        throw new Error('El código de recuperación de contraseña ha caducado')
+        throw new Error('El código de recuperación de contraseña es erróneo o ha caducado')
     }
 }
 

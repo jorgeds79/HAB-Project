@@ -8,11 +8,17 @@ const sendInitialMessage = async (req, res) => {
     const { content } = req.body
     const buyer = req.auth
         
-    console.log(content)
-
     try {
         await messageValidator.validateAsync(req.body)
-        const seller = await db.getSellerByIdBook(id)
+        const book = await db.getBook(id)
+        
+        let seller = []
+        if (book.available) {
+            seller = await db.getSellerByIdBook(id)
+        } else {
+            res.status(400).send()
+            return
+        }
         const idDestination = seller.id
         // comprobamos que no se haya iniciado con anterioridad
         // el chat, ya que éste se inicia siempre desde el 
@@ -20,16 +26,15 @@ const sendInitialMessage = async (req, res) => {
         // el propio panel de mensajes o bien desde el panel
         // de producto
         let Chat = await db.checkChat(id, buyer.id)
-        console.log(Chat)
-
+        
         if (Chat) {
             await db.sendMessage(Chat.id_chat, id, seller.id, buyer.id, idDestination, content)
             // enviamos mail de notificación al vendedor:
-            // utils.sendMessageReceivedMail(seller.email, book.title, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+            utils.sendMessageReceivedMail(seller.email, book.title, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
         } else {
             Chat = parseInt(`${id}${buyer.id}`)
             await db.sendMessage(Chat, id, seller.id, buyer.id, idDestination, content)
-            // utils.sendMessageReceivedMail(seller.email, book.title, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+            utils.sendMessageReceivedMail(seller.email, book.title, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
         }
     } catch (e) {
         let statusCode = 400;
@@ -66,7 +71,6 @@ const getListOfChats = async (req, res) => {
                 const unreadMessages  = messages
                     .filter( (message) =>  message.id_chat === chat )
                     .filter( (message) => ((message.id_destination === decodedToken.id) && !message.viewed ))
-                console.log(unreadMessages)
                 // si "unreadMessages" existe hay mensajes sin leer,
                 // marcamos el chat como no leído en el front
                 if (unreadMessages.length !== 0) {
@@ -130,6 +134,11 @@ const sendReplyMessage = async (req, res) => {
         await messageValidator.validateAsync(req.body)
         const messages = await db.getMessagesOfChat(id)
         const data = messages[0]
+
+        if ( data.id_seller !== sender.id && data.id_buyer !== sender.id ) {
+            res.status(400).send()
+            return
+        }
         let idDestination = data.id_seller
                 
         if (sender.id === data.id_seller) {
@@ -140,7 +149,7 @@ const sendReplyMessage = async (req, res) => {
         // enviamos mail de notificación al destinatario:
         const destination = await db.getUserById(idDestination)
         const book = await db.getBook(data.id_book)
-        // utils.sendMessageReceivedMail(destination.email, book.title, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+        utils.sendMessageReceivedMail(destination.email, book.title, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
         
     } catch (e) {
         let statusCode = 400;

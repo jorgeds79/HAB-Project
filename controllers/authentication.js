@@ -17,36 +17,18 @@ const { updateProfileValidator } = require('../validators/updateProfile')
 
 
 const register = async (req, res) => {
-    // comprobar que nos pasan los campos requeridos
-    // (como mínimo serán email y password pero pueder ser
-    // cualquiera que haga falta en vuestro proyecto)
-
-    // almacenaremos el usuario en BBDD
-    // con la password encriptada (con bcrypt)
-    // para que nunca se sepa cuál era la password original
-    
+        
     try {
-        console.log(req.body)
         await authValidator.validateAsync(req.body)
                         
-        // En una aplicación más grande, se podría incluir
-        // más información del usuario (nombre real, dirección
-        // postal, etc)
         const { name, surnames, address, location, phone, email, password } = req.body
 
         const passwordBcrypt = await bcrypt.hash(password, 10);
 
-        // Generamos un string aleatorio para identificar a este usuario
-        // únicamente a efectos de validación
         const validationCode = randomstring.generate(40);
 
-        // Comprobamos aquí si ya existe un usuario con ese
-        // email y que no esté validado (activo), ya que si existe y se 
-        // encuentra sin validar debe permitir el registro 
-
         const user = await db.getUser(email)
-        console.log(user)
-
+        
         if (user && user.active) {
             res.status(401).send()
             return
@@ -60,9 +42,7 @@ const register = async (req, res) => {
 
         await db.register(name, surnames, address, location, phone, email, passwordBcrypt, validationCode, preCreated)
         
-        // Enviar un correo eléctronico: si el usuario
-        // de verdad es quien dice ser, podrá acceder a dicho correo
-        // utils.sendConfirmationMail(email, `http://${process.env.PUBLIC_DOMAIN}/user/validate/${validationCode}`)
+        utils.sendConfirmationMail(email, `http://${process.env.PUBLIC_DOMAIN}/user/validate/${validationCode}`)
 
     } catch (e) {
         res.status(400).send()
@@ -73,15 +53,13 @@ const register = async (req, res) => {
 }
 
 const validateRegister = async (req, res) => {
-    // http://ip:puerto/user/validate/lkj414j234lkj23142134lk2j34lñk2j42334
     const { code } = req.params;
 
     try {
         const email = await db.checkValidationCode(code)
-        // enviamos email de confirmación
-        // si se valida correctamente
+        
         if (email) {
-            // utils.sendVerificationMail(email, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+            utils.sendVerificationMail(email, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
         }
         res.send('Validado correctamente')
     } catch(e) {
@@ -90,16 +68,9 @@ const validateRegister = async (req, res) => {
 }
 
 const login = async (req, res) => {
-    // validar username y password:
-    //    - comprobar que están en BBDD y coinciden
+    
     const { email, password} = req.body
 
-    // Validamos que el formato de los datos
-    // de entrada es correcta. Si no es correcta
-    // ya no realizamos la consulta a BBDD (no es 
-    // estrictamente imprescindible ya que las
-    // validaciones que vienen a continuación
-    // fallarán si no existen email o password)
     try {
         await logValidator.validateAsync(req.body)
     } catch(e) {
@@ -108,8 +79,7 @@ const login = async (req, res) => {
     }
     
     const user = await db.getUser(email)
-    console.log(user)
-
+    
     if (!user) {
         res.status(401).send()
         return
@@ -120,8 +90,6 @@ const login = async (req, res) => {
         return
     }
 
-    // comprobar la password (ojo! con bcrypt)
-    // error si no matchean
     const passwordIsvalid = await bcrypt.compare(password, user.password);
 
     if (!passwordIsvalid) {
@@ -129,8 +97,6 @@ const login = async (req, res) => {
         return
     }
 
-    // metemos cualquier tipo de información que pueda
-    // ser de utilidad en los controladores
     const tokenPayload = {
         id: user.id,
         name: user.name,
@@ -138,9 +104,6 @@ const login = async (req, res) => {
         email: user.email
     }
 
-    // generamos el token a partir del objeto anterior con la librería jsonwebtoken
-    // homework: probar caducidades de token más pequeñas y probar que el middleware
-    // isAuthenticated no valida el token en esos casos
     const token = jwt.sign(tokenPayload, process.env.SECRET, {
         expiresIn: "1d"
     });
@@ -151,10 +114,9 @@ const login = async (req, res) => {
 }
 
 const updateUserPassword = async (req, res) => {
-    // Comprobar sintaxis de los parámetros (vieja password (1234) y la nueva password (123456))
-    
+     
     const { password, newPassword, repeatNewPassword} = req.body
-    // Comprobar que la vieja es correcta
+    
     const decodedToken = req.auth
     
     if (newPassword !== repeatNewPassword) {
@@ -169,9 +131,6 @@ const updateUserPassword = async (req, res) => {
         return
     }
 
-    // comprobar la password correspondiente
-    // al usuario del token (ojo! con bcrypt)
-    // error si no matchean
     const user = await db.getUser(decodedToken.email)
     const passwordIsvalid = await bcrypt.compare(password, user.password);
 
@@ -180,17 +139,15 @@ const updateUserPassword = async (req, res) => {
         return
     }
 
-    // Ciframos la nueva password
     const passwordBcrypt = await bcrypt.hash(newPassword, 10);
 
-    // Actualizar vieja password con la nueva cifrada
     await db.updatePassword(user.id, passwordBcrypt)
 
     res.send()
 }
 
 const recoverPassword = async (req, res) => {
-    // Comprobar que el formato del email es correcto
+    
     const { email } = req.body
     
     try {
@@ -200,17 +157,12 @@ const recoverPassword = async (req, res) => {
         return
     }
     
-    // comprobar que el email se corresponde
-    // a un usuario activo en BBDD
-    // Si el usuario existe (y está activado)
-    // enviamos email con link para recuperar
-    // la contraseña
     const user = await db.getUser(email)
          
     if (user && user.active) {
         const validationCode = randomstring.generate(40);
         await db.updateValidationCode(email, validationCode)
-        // utils.sendRecoverPasswordMail(email, `http://${process.env.PUBLIC_DOMAIN}/user/password/reset/${validationCode}`)
+        utils.sendRecoverPasswordMail(email, `http://${process.env.PUBLIC_DOMAIN}/user/password/reset/${validationCode}`)
     } else {
         res.status(400).send('Email incorrecto')
         return
@@ -220,13 +172,13 @@ const recoverPassword = async (req, res) => {
 }
 
 const goToUpdatePassword = async (req, res) => {
-    // http://ip:puerto/user/password/reset/lkj414j234lkj23142134lk2j34lñk2j42334
+    
     const { code } = req.params;
 
     try {
         const user = await db.checkValidationCodeForPassword(code)
         
-        if (user) {
+        if (user && user.active) {
             // go to redireccion a otro endpoint con el user.id en 
             // req.params, donde se introducirá la contraseña dos veces
         }
@@ -248,11 +200,11 @@ const updateRecoveredPassword = async (req, res) => {
     }
 
     const user = await db.getUserById(id)
-    // Ciframos la nueva password
+    
     const passwordBcrypt = await bcrypt.hash(newPassword, 10);
-    // Actualizar vieja password con la nueva cifrada
+    
     await db.updatePassword(id, passwordBcrypt)
-    // utils.sendRecoveredPasswordMail(user.email, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+    utils.sendRecoveredPasswordMail(user.email, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
 
     res.send('Contraseña actualizada correctamente')
 }
@@ -267,7 +219,7 @@ const updateProfile = async (req, res) => {
         await updateProfileValidator.validateAsync(req.body)
         const user = await db.getUserById(id)
            
-        if (decodedToken.id !== user.id || !user.active) {
+        if (decodedToken.id !== user.id) {
             res.status(400).send()
             return
         }
@@ -287,10 +239,6 @@ const updateProfile = async (req, res) => {
 
             await fsPromises.writeFile(outputFileName, req.files.image.data)
 
-            // guardar una referencia a este UUID En la base de datos, de forma que
-            // cuando nos pidan la lista de nuestros recursos (productos, conciertos, etc) o 
-            // el detalle de uno de ellos, accedemos a la BBDD para leer los UUID, y después el
-            // front llamará al GET con el UUID correspondiente
             await db.uploadProfilePhoto(outputFileName, decodedToken.id)
         }
     
@@ -305,18 +253,12 @@ const updateProfile = async (req, res) => {
 const logout = async (req, res, next) => {
         
     try {
-        // si la verificación del token falla (caducado, mal formado, no descifrable
-        // con el SECRET dado) salta una excepción
         const decodedToken = {}
 
         req.auth = decodedToken;
     } catch (e) {
         res.status(401).send()
         return
-
-        //        const authError = new Error('invalid token');
-        //        authError.status = 401;
-        //        return next(authError);
     }
 
     res.send(req.auth)

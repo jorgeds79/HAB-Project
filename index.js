@@ -3,6 +3,7 @@ require('dotenv').config()
 const bodyParser = require('body-parser')
 const express = require('express')
 const fileUpload = require("express-fileupload");
+const cors = require('cors')
 
 const {
     login,
@@ -53,6 +54,8 @@ const {
 } = require('./middlewares/auth')
 
 const app = express()
+
+app.use(cors())
 
 
 /**

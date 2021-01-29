@@ -9,14 +9,17 @@ const createTransaction = async (req, res) => {
 
     try {
         const book = await db.getBook(id)
-        
+
         // Verificamos que el usuario que realiza la 
         // transaccion no es el propio vendedor
         if (decodedToken.id === book.id_user) {
             res.status(401).send()
             return
         }
-        
+        if (!book.available) {
+            res.status(401).send()
+            return
+        }
         // obtenemos los datos del vendedor
         const seller = await db.getUserById(book.id_user)
 
@@ -24,12 +27,17 @@ const createTransaction = async (req, res) => {
         // la transacción actual y se cancelan las demás
         // asociadas al libro si las hubiese, y se pasa
         // el estado del libro a 'no disponible')
-        await db.createTransaction(id, decodedToken.id)
+        if (seller.active) {
+            await db.createTransaction(id, decodedToken.id)
+        } else {
+            res.status(401).send()
+            return
+        }
 
         // enviamos un email informativo a vendedor
         // y comprador
-        // utils.sendBookingMail(seller.email, decodedToken.email, book.title, book.course, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
-        
+        utils.sendBookingMail(seller.email, decodedToken.email, book.title, book.course, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+
     } catch (e) {
         let statusCode = 400;
         // averiguar el tipo de error para enviar un código u otro
@@ -61,7 +69,11 @@ const confirmTransaction = async (req, res) => {
         // Verificamos que el usuario que confirma
         // la transaccion es el propio vendedor
         if (decodedToken.id !== book.id_user) {
-            res.status(500).send()
+            res.status(400).send()
+            return
+        }
+        if (!buyer.active) {
+            res.status(400).send()
             return
         }
 
@@ -72,16 +84,16 @@ const confirmTransaction = async (req, res) => {
         // del libro a 'no disponible'
 
         await db.completeTransaction(id, place, date)
-        // utils.sendCompletedTransactionMail(decodedToken.email, buyer.email, book.title, book.course, place, date, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+        utils.sendCompletedTransactionMail(decodedToken.email, buyer.email, book.title, book.course, place, date, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
         await db.deleteBook(transaction.id_book)
-        
+
         let cancelled = await db.getTransactionsToCancel(book.id)
-        
+
         if (cancelled) {
             for (let item of cancelled) {
                 buyer = await db.getUserById(item.id_buyer)
                 await db.cancelTransaction(item.id)
-                // utils.sendCanceledTransactionMail(decodedToken.email, buyer.email, book.title, book.course, id, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+                utils.sendCanceledTransactionMail(decodedToken.email, buyer.email, book.title, book.course, id, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
             }
         }
     } catch (e) {
@@ -106,7 +118,7 @@ const cancelTransaction = async (req, res) => {
         const transaction = await db.getTransaction(id)
         const book = await db.getBook(transaction.id_book)
         const buyer = await db.getUserById(transaction.id_buyer)
-        
+
         if (transaction.status !== 'en proceso') {
             res.status(400).send()
             return
@@ -118,7 +130,7 @@ const cancelTransaction = async (req, res) => {
             return
         }
         await db.cancelTransaction(id)
-         // utils.sendCanceledTransactionMail(decodedToken.email, buyer.email, book.title, book.course, id, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+        utils.sendCanceledTransactionMail(decodedToken.email, buyer.email, book.title, book.course, id, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
     } catch (e) {
         let statusCode = 400;
         // averiguar el tipo de error para enviar un código u otro
@@ -156,7 +168,7 @@ const getListOfPurchases = async (req, res) => {
     try {
         const transactions = await db.getListOfTransactionsOfUser(decodedToken.id)
         let purchases = []
-        
+
         if (transactions) {
             purchases = transactions.filter(transaction => transaction.id_buyer === decodedToken.id)
             res.send(purchases)
@@ -180,7 +192,7 @@ const getListOfSales = async (req, res) => {
     const decodedToken = req.auth
     try {
         const transactions = await db.getListOfTransactionsOfUser(decodedToken.id)
-        
+
         if (transactions) {
             const sales = transactions.filter(transaction => transaction.id_buyer !== decodedToken.id)
             res.send(sales)
@@ -207,8 +219,8 @@ const getUserReviews = async (req, res) => {
 
         if (transactions) {
             const reviews = transactions
-                .filter( (transaction) => (transaction.id_buyer !== decodedToken.id) && (transaction.status === 'completado') )
-                .map( transaction => {
+                .filter((transaction) => (transaction.id_buyer !== decodedToken.id) && (transaction.status === 'completado'))
+                .map(transaction => {
                     let review = {
                         id: transaction.id,
                         id_book: transaction.id_book,
@@ -217,7 +229,7 @@ const getUserReviews = async (req, res) => {
                     }
                     return review
                 })
-               
+
             res.send(reviews)
             return
         } else {
@@ -244,7 +256,7 @@ const putReviewToSeller = async (req, res) => {
     console.log(now)
     try {
         const transaction = await db.getTransaction(id)
-        
+
         if (transaction.id_buyer !== decodedToken.id) {
             res.status(400).send()
             return
@@ -254,7 +266,7 @@ const putReviewToSeller = async (req, res) => {
             res.send('No es posible realizar la valoración antes de realizar la entrega')
             return
         }
-        await db.updateTransactionWithReview(id,review)
+        await db.updateTransactionWithReview(id, review)
         res.send()
     } catch (e) {
         let statusCode = 400;

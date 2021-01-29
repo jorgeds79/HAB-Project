@@ -44,7 +44,7 @@ const goToActivateBook = async (req, res) => {
         if (book) {
             await db.activateBook(book.id)
             const user = await db.getUserById(book.id_user)
-            // utils.sendConfirmationUploadedMail(user.email, book.isbn, book.title, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+            utils.sendConfirmationUploadedMail(user.email, book.isbn, book.title, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
         } else {
             res.status(400).send()
             return
@@ -55,7 +55,7 @@ const goToActivateBook = async (req, res) => {
         if (requests.length > 0) {
             const actives = requests.filter(user => user.active)
             for (let user of actives) {
-                // utils.sendPetitionRequiredMail(email, isbn, title, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+                utils.sendPetitionRequiredMail(email, isbn, title, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
             }
         }
 
@@ -76,9 +76,16 @@ const updateBook = async (req, res) => {
         const book = await db.getBook(id)
 
         if (decodedToken.id !== book.id_user) {
-            res.status(500).send()
+            res.status(400).send()
             return
         }
+
+        if (!book.available) {
+            res.status(400).send()
+            return
+        }
+
+
 
         await db.updateBook(isbn, title, course, editorial, editionYear, price, detail, id)
         
@@ -124,6 +131,11 @@ const addImageBook = async (req, res) => {
         const book = await db.getBook(id)
 
         if (decodedToken.id !== book.id_user) {
+            res.status(400).send()
+            return
+        }
+
+        if (!book.available) {
             res.status(400).send()
             return
         }
@@ -177,6 +189,11 @@ const deleteImageBook = async (req, res) => {
         }
         
         if (decodedToken.id !== book.id_user) {
+            res.status(400).send()
+            return
+        }
+
+        if (!book.available) {
             res.status(400).send()
             return
         }
