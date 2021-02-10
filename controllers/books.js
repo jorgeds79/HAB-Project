@@ -19,7 +19,7 @@ const uploadBook = async (req, res) => {
 
         await db.uploadBook(isbn, title, course, editorial, editionYear, price, detail, activationCode, decodedToken.id)
 
-        utils.sendReqAuthorizationMail(isbn, title, course, editorial, editionYear, price, detail, `http://${process.env.PUBLIC_DOMAIN}/upload/activate/${activationCode}`)
+        utils.sendReqAuthorizationMail(isbn, title, course, editorial, editionYear, price, detail, `http://${process.env.BACKEND_DOMAIN}/upload/activate/${activationCode}`)
 
     } catch (e) {
         let statusCode = 400;
@@ -44,9 +44,9 @@ const goToActivateBook = async (req, res) => {
         if (book) {
             await db.activateBook(book.id)
             const user = await db.getUserById(book.id_user)
-            utils.sendConfirmationUploadedMail(user.email, book.isbn, book.title, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+            utils.sendConfirmationUploadedMail(user.email, book.isbn, book.title, `http://${process.env.FRONTEND_DOMAIN}/login`)
         } else {
-            res.status(400).send()
+            res.status(400).send('El código de activación es incorrecto')
             return
         }
         // comprobamos posibles peticiones de usuarios de ese isbn
@@ -55,13 +55,13 @@ const goToActivateBook = async (req, res) => {
         if (requests.length > 0) {
             const actives = requests.filter(user => user.active)
             for (let user of actives) {
-                utils.sendPetitionRequiredMail(email, isbn, title, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+                utils.sendPetitionRequiredMail(user.email, book.isbn, book.title, `http://${process.env.FRONTEND_DOMAIN}/login`)
             }
         }
 
         res.send('Validado correctamente')
     } catch (e) {
-        res.status(401).send('Usuario no validado')
+        res.status(401).send('Libro no validado')
     }
 }
 

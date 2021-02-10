@@ -22,7 +22,7 @@ const register = async (req, res) => {
         await authValidator.validateAsync(req.body)
                         
         const { name, surnames, address, location, phone, email, password } = req.body
-
+        
         const passwordBcrypt = await bcrypt.hash(password, 10);
 
         const validationCode = randomstring.generate(40);
@@ -30,7 +30,7 @@ const register = async (req, res) => {
         const user = await db.getUser(email)
         
         if (user && user.active) {
-            res.status(401).send()
+            res.status(401).send('El usuario ya existe!')
             return
         }
 
@@ -41,15 +41,15 @@ const register = async (req, res) => {
         }        
 
         await db.register(name, surnames, address, location, phone, email, passwordBcrypt, validationCode, preCreated)
-        
-        utils.sendConfirmationMail(email, `http://${process.env.PUBLIC_DOMAIN}/user/validate/${validationCode}`)
+
+        utils.sendConfirmationMail(email, `http://${process.env.BACKEND_DOMAIN}/user/validate/${validationCode}`)
 
     } catch (e) {
-        res.status(400).send()
+        res.status(400).send('Los campos introducidos no son correctos, vuelve a intentarlo por favor')
         return
     }
 
-    res.send()
+    res.send('Compruebe la bandeja de entrada de su correo para completar la activación')
 }
 
 const validateRegister = async (req, res) => {
@@ -59,7 +59,7 @@ const validateRegister = async (req, res) => {
         const email = await db.checkValidationCode(code)
         
         if (email) {
-            utils.sendVerificationMail(email, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+            utils.sendVerificationMail(email, `http://${process.env.FRONTEND_DOMAIN}/login`)
         }
         res.send('Validado correctamente')
     } catch(e) {
@@ -162,7 +162,7 @@ const recoverPassword = async (req, res) => {
     if (user && user.active) {
         const validationCode = randomstring.generate(40);
         await db.updateValidationCode(email, validationCode)
-        utils.sendRecoverPasswordMail(email, `http://${process.env.PUBLIC_DOMAIN}/user/password/reset/${validationCode}`)
+        utils.sendRecoverPasswordMail(email, `http://${process.env.BACKEND_DOMAIN}/user/password/reset/${validationCode}`)
     } else {
         res.status(400).send('Email incorrecto')
         return
@@ -204,7 +204,7 @@ const updateRecoveredPassword = async (req, res) => {
     const passwordBcrypt = await bcrypt.hash(newPassword, 10);
     
     await db.updatePassword(id, passwordBcrypt)
-    utils.sendRecoveredPasswordMail(user.email, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+    utils.sendRecoveredPasswordMail(user.email, `http://${process.env.FRONTEND_DOMAIN}/login`)
 
     res.send('Contraseña actualizada correctamente')
 }

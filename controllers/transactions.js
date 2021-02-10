@@ -36,7 +36,7 @@ const createTransaction = async (req, res) => {
 
         // enviamos un email informativo a vendedor
         // y comprador
-        utils.sendBookingMail(seller.email, decodedToken.email, book.title, book.course, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+        utils.sendBookingMail(seller.email, decodedToken.email, book.title, book.course, `http://${process.env.FRONTEND_DOMAIN}/login`)
 
     } catch (e) {
         let statusCode = 400;
@@ -84,7 +84,7 @@ const confirmTransaction = async (req, res) => {
         // del libro a 'no disponible'
 
         await db.completeTransaction(id, place, date)
-        utils.sendCompletedTransactionMail(decodedToken.email, buyer.email, book.title, book.course, place, date, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+        utils.sendCompletedTransactionMail(decodedToken.email, buyer.email, book.title, book.course, place, date, `http://${process.env.FRONTEND_DOMAIN}/login`)
         await db.deleteBook(transaction.id_book)
 
         let cancelled = await db.getTransactionsToCancel(book.id)
@@ -93,7 +93,7 @@ const confirmTransaction = async (req, res) => {
             for (let item of cancelled) {
                 buyer = await db.getUserById(item.id_buyer)
                 await db.cancelTransaction(item.id)
-                utils.sendCanceledTransactionMail(decodedToken.email, buyer.email, book.title, book.course, id, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+                utils.sendCanceledTransactionMail(decodedToken.email, buyer.email, book.title, book.course, id, `http://${process.env.FRONTEND_DOMAIN}/login`)
             }
         }
     } catch (e) {
@@ -130,7 +130,7 @@ const cancelTransaction = async (req, res) => {
             return
         }
         await db.cancelTransaction(id)
-        utils.sendCanceledTransactionMail(decodedToken.email, buyer.email, book.title, book.course, id, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+        utils.sendCanceledTransactionMail(decodedToken.email, buyer.email, book.title, book.course, id, `http://${process.env.FRONTEND_DOMAIN}/login`)
     } catch (e) {
         let statusCode = 400;
         // averiguar el tipo de error para enviar un código u otro

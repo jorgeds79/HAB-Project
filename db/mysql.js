@@ -278,8 +278,8 @@ const register = async(name, surnames, address, location, phone, email, password
             location = ?,
             phone = ?,
             password = ?,
-            validationCode = ?
-            expirationCodeDate = addtime(now(), '0 2:0:0'),
+            validationCode = ?,
+            expirationCodeDate = addtime(now(), '0 2:0:0')
             where email = ?`
         params = [name, surnames, address, location, phone, password, validationCode, email]        
     } else {

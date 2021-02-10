@@ -30,11 +30,11 @@ const sendInitialMessage = async (req, res) => {
         if (Chat) {
             await db.sendMessage(Chat.id_chat, id, seller.id, buyer.id, idDestination, content)
             // enviamos mail de notificación al vendedor:
-            utils.sendMessageReceivedMail(seller.email, book.title, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+            utils.sendMessageReceivedMail(seller.email, book.title, `http://${process.env.FRONTEND_DOMAIN}/login`)
         } else {
             Chat = parseInt(`${id}${buyer.id}`)
             await db.sendMessage(Chat, id, seller.id, buyer.id, idDestination, content)
-            utils.sendMessageReceivedMail(seller.email, book.title, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+            utils.sendMessageReceivedMail(seller.email, book.title, `http://${process.env.FRONTEND_DOMAIN}/login`)
         }
     } catch (e) {
         let statusCode = 400;
@@ -149,7 +149,7 @@ const sendReplyMessage = async (req, res) => {
         // enviamos mail de notificación al destinatario:
         const destination = await db.getUserById(idDestination)
         const book = await db.getBook(data.id_book)
-        utils.sendMessageReceivedMail(destination.email, book.title, `http://${process.env.PUBLIC_DOMAIN}/user/login`)
+        utils.sendMessageReceivedMail(destination.email, book.title, `http://${process.env.FRONTEND_DOMAIN}/login`)
         
     } catch (e) {
         let statusCode = 400;
