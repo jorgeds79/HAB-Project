@@ -20,8 +20,10 @@ const {
 const {
     addImageBook,
     deleteImageBook,
+    getListOfBooksOfUser,
     getPetitions,
     goToActivateBook,
+    searchByLevel,
     setPetition,
     updateBook,
     uploadBook,
@@ -137,6 +139,12 @@ app.post('/upload', isAuthenticated, uploadBook)
  * administrador para su revision previa 
  */
 app.get('/upload/activate/:code', goToActivateBook)
+
+
+/**
+ * Ver libros subidos
+ */
+app.get('/user/books', isAuthenticated, getListOfBooksOfUser)
 
 
 /**
@@ -264,6 +272,12 @@ app.get('/user/requests', isAuthenticated, getPetitions)
  * Búsquedas de libro por filtros
  */
 app.get('/books', search)
+
+
+/**
+ * Mostrar libros por nivel educativo (Home)
+ */
+app.get('/search/:level', searchByLevel)
 
 
 

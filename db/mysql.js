@@ -7,6 +7,8 @@ const performQuery = async (query, params) => {
     
     try {
         connection = await getConnection();
+        // console.log(query)
+        // console.log(params)
 
         const [result] = await connection.query(query, params)
         // console.log(result)
@@ -176,6 +178,14 @@ const getBook = async (id) => {
     return result
 }
 
+const getBooksOfUser = async (id) => {
+    const query = `select * from books where id_user = ?`
+    const params = [id]
+
+    const result = await performQuery(query, params)
+    return result
+}
+
 const getImage = async (id) => {
     const query = `select * from images where id = ?`
     const params = [id]
@@ -290,6 +300,16 @@ const register = async(name, surnames, address, location, phone, email, password
     await performQuery(query, params)
 }
 
+const searchBooksByLevel = async (level) => {
+    const query = `select * from books where course LIKE "%${level}%" AND available=true`
+    const params = []
+
+    const result = await performQuery(query, params)
+    console.log(result)
+    
+    return result
+}
+
 const sendMessage = async (id_chat, id_book, id_seller, id_buyer, id_destination, content) => {
     const query = `insert into messages(id_chat, id_book, id_seller, id_buyer, id_destination, content)
     VALUES(?, ?, ?, ?, ?, ?)`
@@ -401,6 +421,7 @@ module.exports = {
     deleteMessageAsSeller,
     getAllMessagesOfUser,
     getBook,
+    getBooksOfUser,
     getImage,
     getListOfTransactionsOfUser,
     getMessageById,
@@ -413,6 +434,7 @@ module.exports = {
     getUser,
     getUserById,
     register,
+    searchBooksByLevel,
     sendMessage,
     setMessagesToViewed,
     setPetitionOfUser,

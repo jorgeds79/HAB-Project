@@ -11,7 +11,7 @@ const isAuthenticated = async (req, res, next) => {
         // si la verificación del token falla (caducado, mal formado, no descifrable
         // con el SECRET dado) salta una excepción
         const decodedToken = jwt.verify(authorization, process.env.SECRET);
-
+        req.auth = decodedToken
         const user = await db.getUser(decodedToken.email)
 
         if (!user) {

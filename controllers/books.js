@@ -88,7 +88,7 @@ const updateBook = async (req, res) => {
 
 
         await db.updateBook(isbn, title, course, editorial, editionYear, price, detail, id)
-        
+
         if (req.files) {
             // si hiciese falta comprobar la extensión del fichero
             // podríamos hacerlo aquí a partir de la información de req.files
@@ -187,7 +187,7 @@ const deleteImageBook = async (req, res) => {
             res.status(400).send()
             return
         }
-        
+
         if (decodedToken.id !== book.id_user) {
             res.status(400).send()
             return
@@ -212,6 +212,30 @@ const deleteImageBook = async (req, res) => {
     }
 
     res.send('Datos actualizados correctamente')
+}
+
+const getListOfBooksOfUser = async (req, res) => {
+    const decodedToken = req.auth
+    console.log(req.auth)
+    try {
+        const books = await db.getBooksOfUser(decodedToken.id)
+        if (books.length !== 0) {
+            res.send(books)
+            return
+        } else {
+            res.send('No tienes libros subidos')
+        }
+
+    } catch (e) {
+        let statusCode = 400;
+        // averiguar el tipo de error para enviar un código u otro
+        if (e.message === 'database-error') {
+            statusCode = 500
+        }
+
+        res.status(statusCode).send(e.message)
+        return
+    }
 }
 
 const getPetitions = async (req, res) => {
@@ -259,11 +283,34 @@ const setPetition = async (req, res) => {
     return
 }
 
+const searchByLevel = async (req, res) => {
+    const { level } = req.params
+    console.log(level)
+    try {
+        const books = await db.searchBooksByLevel(level)
+
+        res.send(books)
+        return
+
+    } catch (e) {
+        let statusCode = 400;
+        // averiguar el tipo de error para enviar un código u otro
+        if (e.message === 'database-error') {
+            statusCode = 500
+        }
+
+        res.status(statusCode).send(e.message)
+        return
+    }
+}
+
 module.exports = {
     addImageBook,
     deleteImageBook,
+    getListOfBooksOfUser,
     getPetitions,
     goToActivateBook,
+    searchByLevel,
     setPetition,
     updateBook,
     uploadBook,

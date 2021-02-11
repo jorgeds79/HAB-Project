@@ -34,7 +34,7 @@ async function search(req, res, next) {
         if (isbn || title || course || (price1 && price2)) {
 
             //Establecemos condiciones para la query
-            const conditions = [];
+            const conditions = ['active=true'];
             if (isbn) {
                 conditions.push(`isbn=?`)
                 params.push(`${isbn}`)
