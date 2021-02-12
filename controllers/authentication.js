@@ -17,18 +17,18 @@ const { updateProfileValidator } = require('../validators/updateProfile')
 
 
 const register = async (req, res) => {
-        
+
     try {
         await authValidator.validateAsync(req.body)
-                        
+
         const { name, surnames, address, location, phone, email, password } = req.body
-        
+
         const passwordBcrypt = await bcrypt.hash(password, 10);
 
         const validationCode = randomstring.generate(40);
 
         const user = await db.getUser(email)
-        
+
         if (user && user.active) {
             res.status(401).send('El usuario ya existe!')
             return
@@ -38,7 +38,7 @@ const register = async (req, res) => {
 
         if (user && !user.active) {
             preCreated = true
-        }        
+        }
 
         await db.register(name, surnames, address, location, phone, email, passwordBcrypt, validationCode, preCreated)
 
@@ -57,29 +57,29 @@ const validateRegister = async (req, res) => {
 
     try {
         const email = await db.checkValidationCode(code)
-        
+
         if (email) {
             utils.sendVerificationMail(email, `http://${process.env.FRONTEND_DOMAIN}/login`)
         }
         res.send('Validado correctamente')
-    } catch(e) {
+    } catch (e) {
         res.status(401).send('Usuario no validado')
     }
 }
 
 const login = async (req, res) => {
-    
-    const { email, password} = req.body
+
+    const { email, password } = req.body
 
     try {
         await logValidator.validateAsync(req.body)
-    } catch(e) {
+    } catch (e) {
         res.status(401).send('Usuario y/o contraseña incorrectos')
         return
     }
-    
+
     const user = await db.getUser(email)
-    
+
     if (!user) {
         res.status(401).send()
         return
@@ -110,16 +110,22 @@ const login = async (req, res) => {
 
     res.json({
         token,
-        name: user.name
+        id: user.id,
+        name: user.name,
+        surnames: user.surnames,
+        address: user.address,
+        location: user.location,
+        phone: user.phone,
+        email: user.email
     })
 }
 
 const updateUserPassword = async (req, res) => {
-     
-    const { password, newPassword, repeatNewPassword} = req.body
-    
+
+    const { password, newPassword, repeatNewPassword } = req.body
+
     const decodedToken = req.auth
-    
+
     if (newPassword !== repeatNewPassword) {
         res.status(400).send('Los datos introducidos son incorrectos')
         return
@@ -127,7 +133,7 @@ const updateUserPassword = async (req, res) => {
 
     try {
         await passValidator.validateAsync(req.body)
-    } catch(e) {
+    } catch (e) {
         res.status(400).send('Validacion erronea')
         return
     }
@@ -148,18 +154,18 @@ const updateUserPassword = async (req, res) => {
 }
 
 const recoverPassword = async (req, res) => {
-    
+
     const { email } = req.body
-    
+
     try {
         await emailValidator.validateAsync(req.body)
-    } catch(e) {
+    } catch (e) {
         res.status(400).send('Email incorrecto')
         return
     }
-    
+
     const user = await db.getUser(email)
-         
+
     if (user && user.active) {
         const validationCode = randomstring.generate(40);
         await db.updateValidationCode(email, validationCode)
@@ -173,18 +179,18 @@ const recoverPassword = async (req, res) => {
 }
 
 const goToUpdatePassword = async (req, res) => {
-    
+
     const { code } = req.params;
 
     try {
         const user = await db.checkValidationCodeForPassword(code)
-        
+
         if (user && user.active) {
             // go to redireccion a otro endpoint con el user.id en 
             // req.params, donde se introducirá la contraseña dos veces
         }
         res.send()
-    } catch(e) {
+    } catch (e) {
         res.status(401).send('Usuario no validado')
     }
 }
@@ -192,18 +198,18 @@ const goToUpdatePassword = async (req, res) => {
 const updateRecoveredPassword = async (req, res) => {
     const { id } = req.params
     const { newPassword, repeatNewPassword } = req.body
-        
+
     try {
         await newPassValidator.validateAsync(req.body)
-    } catch(e) {
+    } catch (e) {
         res.status(400).send('Los datos introducidos son incorrectos')
         return
     }
 
     const user = await db.getUserById(id)
-    
+
     const passwordBcrypt = await bcrypt.hash(newPassword, 10);
-    
+
     await db.updatePassword(id, passwordBcrypt)
     utils.sendRecoveredPasswordMail(user.email, `http://${process.env.FRONTEND_DOMAIN}/login`)
 
@@ -214,14 +220,14 @@ const updateProfile = async (req, res) => {
     const { id } = req.params
     const decodedToken = req.auth
     const { name, surnames, address, location, phone } = req.body
-       
+
     try {
-        
+
         await updateProfileValidator.validateAsync(req.body)
         const user = await db.getUserById(id)
-           
+
         if (decodedToken.id !== user.id) {
-            res.status(400).send()
+            res.status(400).send('Ha habido un error, inténtelo de nuevo')
             return
         }
 
@@ -242,17 +248,44 @@ const updateProfile = async (req, res) => {
 
             await db.uploadProfilePhoto(outputFileName, decodedToken.id)
         }
-    
+
+    } catch (e) {
+        res.status(400).send('Ha habido un error, inténtelo de nuevo')
+        return
+    }
+
+    res.send('Datos actualizados correctamente')
+}
+
+const viewUserProfile = async (req, res) => {
+    const { id } = req.params
+    const decodedToken = req.auth
+    console.log('Aquí estoy!')
+    try {
+        if (decodedToken.id === parseInt(id)) {
+            const user = await db.getUserById(id)
+            
+            const profile = {
+                name: user.name,
+                surnames: user.surnames,
+                address: user.address,
+                location: user.location,
+                phone: user.phone,
+            }
+            res.send(profile)
+            return
+        } else {
+            res.status(400).send()
+            return
+        }
     } catch (e) {
         res.status(400).send()
         return
     }
-
-    res.send()
 }
 
 const logout = async (req, res, next) => {
-        
+
     try {
         const decodedToken = {}
 
@@ -276,5 +309,6 @@ module.exports = {
     updateProfile,
     updateRecoveredPassword,
     updateUserPassword,
-    validateRegister   
+    validateRegister,
+    viewUserProfile
 }

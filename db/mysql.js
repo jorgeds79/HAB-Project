@@ -178,11 +178,27 @@ const getBook = async (id) => {
     return result
 }
 
+const getBookByIdChat = async (id) => {
+    const query = `select * from books where id = (select max(id_book) from messages where id_chat=?)`
+    const params = [id]
+
+    const [result] = await performQuery(query, params)
+    return result
+}
+
 const getBooksOfUser = async (id) => {
     const query = `select * from books where id_user = ?`
     const params = [id]
 
     const result = await performQuery(query, params)
+    return result
+}
+
+const getBuyerByIdChat = async (id) => {
+    const query = `select * from users where id = (select max(id_buyer) from messages where id_chat=?)`
+    const params = [id]
+
+    const [result] = await performQuery(query, params)
     return result
 }
 
@@ -229,6 +245,14 @@ const getPetitionsOfUser = async (id) => {
 
 const getSellerByIdBook = async (id) => {
     const query = `select * from users where id = (select id_user from books where id=?)`
+    const params = [id]
+
+    const [result] = await performQuery(query, params)
+    return result
+}
+
+const getSellerByIdChat = async (id) => {
+    const query = `select * from users where id = (select max(id_seller) from messages where id_chat=?)`
     const params = [id]
 
     const [result] = await performQuery(query, params)
@@ -421,13 +445,16 @@ module.exports = {
     deleteMessageAsSeller,
     getAllMessagesOfUser,
     getBook,
+    getBookByIdChat,
     getBooksOfUser,
+    getBuyerByIdChat,
     getImage,
     getListOfTransactionsOfUser,
     getMessageById,
     getMessagesOfChat,
     getPetitionsOfUser,
     getSellerByIdBook,
+    getSellerByIdChat,
     getSellerAndBuyerOfChat,
     getTransaction,
     getTransactionsToCancel,

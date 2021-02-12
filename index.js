@@ -14,7 +14,8 @@ const {
     updateRecoveredPassword,
     updateUserPassword,
     updateProfile,
-    validateRegister
+    validateRegister,
+    viewUserProfile
 } = require('./controllers/authentication')
 
 const {
@@ -124,9 +125,15 @@ app.put('/update-reset-password/:id', updateRecoveredPassword)
 
 
 /**
+ * Ver perfil del usuario
+ */
+app.get('/user/profile/:id', isAuthenticated, viewUserProfile)
+
+
+/**
  * Actualizar perfil del usuario
  */
-app.put('/user/profile/:id', isAuthenticated, updateProfile)    
+app.put('/user/profile/update/:id', isAuthenticated, updateProfile)    
 
 
 /**
