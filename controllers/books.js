@@ -304,11 +304,51 @@ const searchByLevel = async (req, res) => {
     }
 }
 
+const getBookInfo = async (req, res) => {
+    const { id } = req.params
+
+    try {
+        const book = await db.getBook(id)
+        if (!book) {
+            res.status(404).send('No se encuentran los datos')
+            return
+        }
+        const seller = await db.getUserById(book.id_user)
+
+        const data = {
+            'id': id,
+            'id_seller': seller.id,
+            'seller_name': seller.name,
+            'title': book.title,
+            'course': book.course,
+            'isbn': book.isbn,
+            'editorial': book.editorial,
+            'editionYear': book.editionYear,
+            'location': seller.location,
+            'price': book.price
+        }
+
+        res.send(data)
+        return
+
+    } catch (e) {
+        let statusCode = 400;
+        // averiguar el tipo de error para enviar un código u otro
+        if (e.message === 'database-error') {
+            statusCode = 500
+        }
+
+        res.status(statusCode).send(e.message)
+        return
+    }
+}
+
 module.exports = {
     addImageBook,
     deleteImageBook,
     getListOfBooksOfUser,
     getPetitions,
+    getBookInfo,
     goToActivateBook,
     searchByLevel,
     setPetition,

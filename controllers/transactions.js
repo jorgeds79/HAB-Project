@@ -1,5 +1,6 @@
 const db = require('../db/mysql')
 const utils = require('../utils/utils')
+const moment = require('moment')
 
 const { transferValidator } = require('../validators/transfer')
 
@@ -13,7 +14,8 @@ const createTransaction = async (req, res) => {
         // Verificamos que el usuario que realiza la 
         // transaccion no es el propio vendedor
         if (decodedToken.id === book.id_user) {
-            res.status(401).send()
+            // res.status(401).send()
+            res.send('Operación no permitida. Ya eres el propietario del libro')
             return
         }
         if (!book.available) {
@@ -36,7 +38,7 @@ const createTransaction = async (req, res) => {
 
         // enviamos un email informativo a vendedor
         // y comprador
-        utils.sendBookingMail(seller.email, decodedToken.email, book.title, book.course, `http://${process.env.FRONTEND_DOMAIN}/login`)
+        //utils.sendBookingMail(seller.email, decodedToken.email, book.title, book.course, `http://${process.env.FRONTEND_DOMAIN}/login`)
 
     } catch (e) {
         let statusCode = 400;
@@ -49,7 +51,7 @@ const createTransaction = async (req, res) => {
         return
     }
 
-    res.send()
+    res.send('Petición realizada correctamente')
 }
 
 const confirmTransaction = async (req, res) => {
@@ -58,10 +60,12 @@ const confirmTransaction = async (req, res) => {
     const decodedToken = req.auth
 
     try {
+        const newDate = moment(date).format('YYYY-MM-DDThh:mm:ss.sssZ')
+        console.log(newDate)
         // antes de actualizar con lugar y fecha de entrega se valida que éstos vayan en el formato correcto
         // con un validator
-        await transferValidator.validateAsync(req.body)
-
+        // await transferValidator.validateAsync(req.auth)
+        
         const transaction = await db.getTransaction(id)
         const book = await db.getBook(transaction.id_book)
         let buyer = await db.getUserById(transaction.id_buyer)
@@ -82,9 +86,10 @@ const confirmTransaction = async (req, res) => {
         // libro si las hubiese, enviando emails
         // informativos, y se pasa el estado 
         // del libro a 'no disponible'
-
-        await db.completeTransaction(id, place, date)
-        utils.sendCompletedTransactionMail(decodedToken.email, buyer.email, book.title, book.course, place, date, `http://${process.env.FRONTEND_DOMAIN}/login`)
+        const placeToSend = `"${place}"`
+        const dateToSend = `"${newDate.slice(0,10)} ${newDate.slice(11,19)}"`
+        await db.completeTransaction(placeToSend, dateToSend, id)
+        //utils.sendCompletedTransactionMail(decodedToken.email, buyer.email, book.title, book.course, place, date, `http://${process.env.FRONTEND_DOMAIN}/login`)
         await db.deleteBook(transaction.id_book)
 
         let cancelled = await db.getTransactionsToCancel(book.id)
@@ -93,7 +98,7 @@ const confirmTransaction = async (req, res) => {
             for (let item of cancelled) {
                 buyer = await db.getUserById(item.id_buyer)
                 await db.cancelTransaction(item.id)
-                utils.sendCanceledTransactionMail(decodedToken.email, buyer.email, book.title, book.course, id, `http://${process.env.FRONTEND_DOMAIN}/login`)
+                // utils.sendCanceledTransactionMail(decodedToken.email, buyer.email, book.title, book.course, id, `http://${process.env.FRONTEND_DOMAIN}/login`)
             }
         }
     } catch (e) {
@@ -107,7 +112,7 @@ const confirmTransaction = async (req, res) => {
         return
     }
 
-    res.send()
+    res.send('Transacción realizada correctamente')
 }
 
 const cancelTransaction = async (req, res) => {
@@ -130,7 +135,7 @@ const cancelTransaction = async (req, res) => {
             return
         }
         await db.cancelTransaction(id)
-        utils.sendCanceledTransactionMail(decodedToken.email, buyer.email, book.title, book.course, id, `http://${process.env.FRONTEND_DOMAIN}/login`)
+        //utils.sendCanceledTransactionMail(decodedToken.email, buyer.email, book.title, book.course, id, `http://${process.env.FRONTEND_DOMAIN}/login`)
     } catch (e) {
         let statusCode = 400;
         // averiguar el tipo de error para enviar un código u otro
@@ -142,7 +147,7 @@ const cancelTransaction = async (req, res) => {
         return
     }
 
-    res.send()
+    res.send('Transacción cancelada con éxito')
 }
 
 const getListOfTransactions = async (req, res) => {
@@ -150,7 +155,45 @@ const getListOfTransactions = async (req, res) => {
 
     try {
         const transactions = await db.getListOfTransactionsOfUser(decodedToken.id)
-        res.send(transactions)
+
+        let transactionsToSend = []
+        if (transactions.length !== 0) {
+            for (let transaction of transactions) {
+                const book = await db.getBook(transaction.id_book)
+                const seller = await db.getSellerByIdBook(transaction.id_book)
+                const buyer = await db.getUserById(transaction.id_buyer)
+                let dato
+                if (transaction.transfer_date) {
+                    dato = `${transaction.transfer_date.toISOString().slice(0, 10)} a las ${transaction.transfer_date.toISOString().slice(11, 16)}`
+                } else {
+                    dato = transaction.transfer_date
+                }
+
+                const input = {
+                    'id': transaction.id,
+                    'review': transaction.review,
+                    'status': transaction.status,
+                    'transfer_place': transaction.transfer_place,
+                    'transfer_date': dato,
+                    'book_id': book.id,
+                    'book_title': book.title,
+                    'book_isbn': book.isbn,
+                    'book_course': book.course,
+                    'book_editorial': book.editorial,
+                    'book_price': book.price,
+                    'seller_id': seller.id,
+                    'seller_name': seller.name,
+                    'seller_surnames': seller.surnames,
+                    'buyer_id': buyer.id,
+                    'buyer_name': buyer.name,
+                    'buyer_surnames': buyer.surnames
+                }
+                transactionsToSend.push(input)
+            }
+        }
+        res.send(transactionsToSend)
+        console.log(transactionsToSend)
+
     } catch (e) {
         let statusCode = 400;
         // averiguar el tipo de error para enviar un código u otro

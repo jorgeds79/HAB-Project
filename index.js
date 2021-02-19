@@ -24,6 +24,7 @@ const {
     getListOfBooksOfUser,
     getPetitions,
     goToActivateBook,
+    getBookInfo,
     searchByLevel,
     setPetition,
     updateBook,
@@ -168,13 +169,13 @@ app.post('/booking/:id', isAuthenticated, createTransaction)
  * una vez introducidos éstos, al confirmar
  * vamos al siguiente endpoint:
  */
-app.put('/confirm-transaction/:id', isAuthenticated, confirmTransaction)
+app.put('/transaction/confirm/:id', isAuthenticated, confirmTransaction)
 
 
 /**
  * Cancelar reserva/solicitud de libro
  */
-app.put('/booking-cancel/:id', isAuthenticated, cancelTransaction)
+app.put('/transaction/cancel/:id', isAuthenticated, cancelTransaction)
 
 
 /**
@@ -236,19 +237,19 @@ app.post('/messages-init/:id', isAuthenticated, sendInitialMessage)
  * Ver panel de chats
  * (agrupados por libro)
  */
-app.get('/messages-chats', isAuthenticated, getListOfChats)
+app.get('/messages-chats/chatlist', isAuthenticated, getListOfChats)
 
 
 /**
  * Ver mensajes de un chat
  */
-app.get('/messages-chat/:id', isAuthenticated, getChatMessages)
+app.get('/messages-chats/chatmessages/:id', isAuthenticated, getChatMessages)
 
 
 /**
  * Responder mensaje en chat
  */
-app.post('/messages-chat/send/:id', isAuthenticated, sendReplyMessage)
+app.post('/messages-chats/send/:id', isAuthenticated, sendReplyMessage)
 
 
 /**
@@ -279,6 +280,13 @@ app.get('/user/requests', isAuthenticated, getPetitions)
  * Búsquedas de libro por filtros
  */
 app.get('/books', search)
+
+
+/**
+ * Ver datos de usuario
+ * de un libro
+ */
+app.get('/books/info/:id', getBookInfo)
 
 
 /**

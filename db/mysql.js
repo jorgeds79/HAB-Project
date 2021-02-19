@@ -7,11 +7,11 @@ const performQuery = async (query, params) => {
     
     try {
         connection = await getConnection();
-        // console.log(query)
-        // console.log(params)
+        console.log(query)
+        console.log(params)
 
         const [result] = await connection.query(query, params)
-        // console.log(result)
+        console.log(result)
         
         return result;
     } catch (e) {
@@ -105,9 +105,9 @@ const checkValidationCodeForPassword = async (code) => {
     }
 }
 
-const completeTransaction = async (id, place, date) => {
-    const query = `update transactions SET transfer_place = ?, transfer_date = ?, status = 'completado' where id=?`
-    const params = [place, date, id]
+const completeTransaction = async (place, date, id) => {
+    const query = `update transactions SET transfer_place = ${place}, transfer_date = ${date}, status = 'completado' where id=${id}`
+    const params = []
 
     await performQuery(query, params)
 }
@@ -211,8 +211,7 @@ const getImage = async (id) => {
 }
 
 const getListOfTransactionsOfUser = async (id) => {
-    const query = `select * from transactions where id_book in (select id from books where id_user=?) or transactions.id_buyer=? 
-        having transactions.status != 'cancelado'`
+    const query = `select * from transactions where id_book in (select id from books where id_user=?) or transactions.id_buyer=?`
     const params = [id, id]
 
     const result = await performQuery(query, params)

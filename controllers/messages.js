@@ -7,6 +7,7 @@ const sendInitialMessage = async (req, res) => {
     const { id } = req.params
     const { content } = req.body
     const buyer = req.auth
+    console.log(buyer)
 
     try {
         await messageValidator.validateAsync(req.body)
@@ -16,10 +17,18 @@ const sendInitialMessage = async (req, res) => {
         if (book.available) {
             seller = await db.getSellerByIdBook(id)
         } else {
-            res.status(400).send()
+            res.status(400).send('Libro no disponible!')
             return
         }
-        const idDestination = seller.id
+
+        let idDestination = 0
+        if (seller.id !== buyer.id) {
+            idDestination = seller.id
+        } else {
+            res.send('Acción no permitida, ya eres el propietario del libro')
+            return
+        }
+
         // comprobamos que no se haya iniciado con anterioridad
         // el chat, ya que éste se inicia siempre desde el 
         // panel de producto, y podríamos acceder al chat desde
@@ -30,11 +39,11 @@ const sendInitialMessage = async (req, res) => {
         if (Chat) {
             await db.sendMessage(Chat.id_chat, id, seller.id, buyer.id, idDestination, content)
             // enviamos mail de notificación al vendedor:
-            utils.sendMessageReceivedMail(seller.email, book.title, `http://${process.env.FRONTEND_DOMAIN}/login`)
+            // utils.sendMessageReceivedMail(seller.email, book.title, `http://${process.env.FRONTEND_DOMAIN}/login`)
         } else {
             Chat = parseInt(`${id}${buyer.id}`)
             await db.sendMessage(Chat, id, seller.id, buyer.id, idDestination, content)
-            utils.sendMessageReceivedMail(seller.email, book.title, `http://${process.env.FRONTEND_DOMAIN}/login`)
+            // utils.sendMessageReceivedMail(seller.email, book.title, `http://${process.env.FRONTEND_DOMAIN}/login`)
         }
     } catch (e) {
         let statusCode = 400;
@@ -47,7 +56,7 @@ const sendInitialMessage = async (req, res) => {
         return
     }
 
-    res.send()
+    res.send('Mensaje enviado con éxito!')
 }
 
 const getListOfChats = async (req, res) => {
@@ -83,6 +92,7 @@ const getListOfChats = async (req, res) => {
                 const input = {
                     'id_chat': chat,
                     'book_title': book.title,
+                    'course': book.course,
                     'seller_name': seller.name,
                     'buyer_name': buyer.name,
                     'unreadChat': unread
@@ -111,6 +121,9 @@ const getListOfChats = async (req, res) => {
 const getChatMessages = async (req, res) => {
     const decodedToken = req.auth
     const { id } = req.params
+    const book = await db.getBookByIdChat(id)
+    const seller = await db.getSellerByIdChat(id)
+    const buyer = await db.getBuyerByIdChat(id)
     try {
         // obtenemos los mensajes pertenecientes
         // al usuario y filtramos por id del chat 
@@ -122,7 +135,26 @@ const getChatMessages = async (req, res) => {
 
         await db.setMessagesToViewed(id, decodedToken.id)
 
-        res.send(chatMessages)
+        let listOfMessagesTosend = []
+        for (let message of chatMessages) {
+
+            const input = {
+                'id': message.id,
+                'id_chat': id,
+                'book_title': book.title,
+                'course': book.course,
+                'id_seller': seller.id,
+                'seller_name': seller.name,
+                'id_buyer': buyer.id,
+                'buyer_name': buyer.name,
+                'id_destination': message.id_destination,
+                'content': message.content,
+                'date': `${message.creation_date.toISOString().slice(0, 10)} a las ${message.creation_date.toISOString().slice(11, 16)}`
+            }
+            listOfMessagesTosend.push(input)
+        }
+
+        res.send(listOfMessagesTosend)
         return
     } catch (e) {
         let statusCode = 400;
@@ -160,7 +192,7 @@ const sendReplyMessage = async (req, res) => {
         // enviamos mail de notificación al destinatario:
         const destination = await db.getUserById(idDestination)
         const book = await db.getBook(data.id_book)
-        utils.sendMessageReceivedMail(destination.email, book.title, `http://${process.env.FRONTEND_DOMAIN}/login`)
+        //utils.sendMessageReceivedMail(destination.email, book.title, `http://${process.env.FRONTEND_DOMAIN}/login`)
 
     } catch (e) {
         let statusCode = 400;
