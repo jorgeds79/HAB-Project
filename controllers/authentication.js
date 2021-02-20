@@ -127,14 +127,14 @@ const updateUserPassword = async (req, res) => {
     const decodedToken = req.auth
 
     if (newPassword !== repeatNewPassword) {
-        res.status(400).send('Los datos introducidos son incorrectos')
+        res.status(400).send({ error: 'Los datos introducidos son incorrectos' })
         return
     }
 
     try {
         await passValidator.validateAsync(req.body)
     } catch (e) {
-        res.status(400).send('Validacion erronea')
+        res.status(400).send({ error: 'Validacion erronea' })
         return
     }
 
@@ -142,7 +142,7 @@ const updateUserPassword = async (req, res) => {
     const passwordIsvalid = await bcrypt.compare(password, user.password);
 
     if (!passwordIsvalid) {
-        res.status(401).send()
+        res.status(401).send({ error: 'Error de contraseña' })
         return
     }
 
@@ -150,7 +150,7 @@ const updateUserPassword = async (req, res) => {
 
     await db.updatePassword(user.id, passwordBcrypt)
 
-    res.send()
+    res.send('La contraseña se ha actualizado correctamente')
 }
 
 const recoverPassword = async (req, res) => {
