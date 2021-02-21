@@ -4,7 +4,7 @@ const { getConnection } = require("./db");
 
 const performQuery = async (query, params) => {
     let connection;
-    
+
     try {
         connection = await getConnection();
         console.log(query)
@@ -12,7 +12,7 @@ const performQuery = async (query, params) => {
 
         const [result] = await connection.query(query, params)
         console.log(result)
-        
+
         return result;
     } catch (e) {
         throw new Error('database-error')
@@ -44,8 +44,8 @@ const checkBookActivationCode = async (code) => {
 
     const [result] = await performQuery(query, params)
     return result;
-    
-   }
+
+}
 
 const checkChat = async (id_book, id_buyer) => {
     // comprobamos si ya existe un chat previo entre 
@@ -64,7 +64,7 @@ const checkRequests = async (isbn) => {
     const result = await performQuery(query, params)
     return result;
 }
-    
+
 const checkValidationCode = async (code) => {
     // comprobar si existe un usuario que esté pendiente de validación
     // y que el código de validación no haya caducado
@@ -91,15 +91,15 @@ const checkValidationCodeForPassword = async (code) => {
     const query = `select * from users where validationCode = ? and expirationCodeDate>now()`
     const params = [code]
 
-    const result = await performQuery(query, params)
+
+    const [result] = await performQuery(query, params)
+    console.log(code)
+    console.log(result)
     // si existe un usuario con ese código de validación
     // reseteamos el código y devolvemos el usuario
     // para modificar la contraseña
     if (result) {
-        const query = `update users set validationCode = '' where id=?`
-        const id = result.id
-        await performQuery(query, id)
-        return result;
+        return result
     } else {
         throw new Error('El código de recuperación de contraseña es erróneo o ha caducado')
     }
@@ -187,7 +187,7 @@ const getBookByIdChat = async (id) => {
 }
 
 const getBooksOfUser = async (id) => {
-    const query = `select * from books where id_user = ?`
+    const query = `select * from books where id_user = ? and available = true`
     const params = [id]
 
     const result = await performQuery(query, params)
@@ -237,7 +237,7 @@ const getMessagesOfChat = async (id_chat) => {
 const getPetitionsOfUser = async (id) => {
     const query = `select petition_book_1, petition_book_2, petition_book_3 from users where id = ?`
     const params = [id]
-    
+
     const result = await performQuery(query, params)
     return result
 }
@@ -280,7 +280,7 @@ const getTransactionsToCancel = async (id_book) => {
 
     const result = await performQuery(query, params)
     console.log(result)
-    
+
     return result
 }
 
@@ -300,8 +300,8 @@ const getUserById = async (id) => {
     return result
 }
 
-const register = async(name, surnames, address, location, phone, email, password, validationCode, preCreated) => {
-    let query 
+const register = async (name, surnames, address, location, phone, email, password, validationCode, preCreated) => {
+    let query
     let params
     if (preCreated) {
 
@@ -314,12 +314,12 @@ const register = async(name, surnames, address, location, phone, email, password
             validationCode = ?,
             expirationCodeDate = addtime(now(), '0 2:0:0')
             where email = ?`
-        params = [name, surnames, address, location, phone, password, validationCode, email]        
+        params = [name, surnames, address, location, phone, password, validationCode, email]
     } else {
         query = `insert into users (name, surnames, address, location, phone, email, password, validationCode, expirationCodeDate) values (?,?,?,?,?,?,?,?,addtime(now(), '0 2:0:0'))`
-        params = [name, surnames, address, location, phone, email, password, validationCode]        
+        params = [name, surnames, address, location, phone, email, password, validationCode]
     }
-        
+
     await performQuery(query, params)
 }
 
@@ -329,7 +329,7 @@ const searchBooksByLevel = async (level) => {
 
     const result = await performQuery(query, params)
     console.log(result)
-    
+
     return result
 }
 
@@ -351,7 +351,7 @@ const setMessagesToViewed = async (id_chat, idUser) => {
 const setPetitionOfUser = async (id, isbn, index) => {
     const query = `update users SET petition_book_${index} = ? where id = ?`
     const params = [isbn, id]
-    
+
     await performQuery(query, params)
 }
 
@@ -369,23 +369,23 @@ const updateBook = async (isbn, title, course, editorial, editionYear, price, de
     await performQuery(query, params)
 }
 
-const updatePassword = async (idUser, password) => {
+const updatePassword = async (password, idUser) => {
     const query = `update users set password = ?, validationCode = '' where id=?`
     const params = [password, idUser]
 
     await performQuery(query, params)
 }
 
-const updateProfile = async(name, surnames, address, location, phone, id) => {
+const updateProfile = async (name, surnames, address, location, phone, id) => {
     const query = `update users SET name = ?,
             surnames = ?,
             address = ?,
             location = ?,
             phone = ?
             where id = ?`
-    const params = [name, surnames, address, location, phone, id]        
-    
-        
+    const params = [name, surnames, address, location, phone, id]
+
+
     await performQuery(query, params)
 }
 

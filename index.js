@@ -20,6 +20,7 @@ const {
 
 const {
     addImageBook,
+    deleteBook,
     deleteImageBook,
     getListOfBooksOfUser,
     getPetitions,
@@ -182,6 +183,12 @@ app.put('/transaction/cancel/:id', isAuthenticated, cancelTransaction)
  * Actualizar datos de un libro
  */
 app.put('/update-book/:id', isAuthenticated, updateBook)
+
+
+/**
+ * Borrar libro subido
+ */
+app.put('/user/books/delete/:id', isAuthenticated, deleteBook)
 
 
 /**

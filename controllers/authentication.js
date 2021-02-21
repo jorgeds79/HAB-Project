@@ -148,7 +148,7 @@ const updateUserPassword = async (req, res) => {
 
     const passwordBcrypt = await bcrypt.hash(newPassword, 10);
 
-    await db.updatePassword(user.id, passwordBcrypt)
+    await db.updatePassword(passwordBcrypt, user.id)
 
     res.send('La contraseña se ha actualizado correctamente')
 }
@@ -169,7 +169,8 @@ const recoverPassword = async (req, res) => {
     if (user && user.active) {
         const validationCode = randomstring.generate(40);
         await db.updateValidationCode(email, validationCode)
-        utils.sendRecoverPasswordMail(email, `http://${process.env.BACKEND_DOMAIN}/user/password/reset/${validationCode}`)
+        utils.sendRecoverPasswordMail(email, `http://${process.env.FRONTEND_DOMAIN}/user/password/reset/${validationCode}`)
+        console.log('mensaje enviado')
     } else {
         res.status(400).send('Email incorrecto')
         return
@@ -186,129 +187,137 @@ const goToUpdatePassword = async (req, res) => {
         const user = await db.checkValidationCodeForPassword(code)
 
         if (user && user.active) {
-            // go to redireccion a otro endpoint con el user.id en 
-            // req.params, donde se introducirá la contraseña dos veces
+            res.json({
+                id: user.id,
+                email: user.email
+            })
+            return
+        } else {
+            res.status(400).send({ error: 'User does not exist' })
         }
-        res.send()
+
     } catch (e) {
-        res.status(401).send('Usuario no validado')
+        res.status(401).send({ error: 'Error en el proceso' })
     }
 }
 
 const updateRecoveredPassword = async (req, res) => {
     const { id } = req.params
-    const { newPassword, repeatNewPassword } = req.body
+    const { newPassword } = req.body
 
     try {
-        await newPassValidator.validateAsync(req.body)
+        // await newPassValidator.validateAsync(req.body) 
+
+        const user = await db.getUserById(id);
+        console.log(user);
+        console.log('hola');
+        console.log(newPassword)
+        const passwordBcrypt = await bcrypt.hash(newPassword, 10);
+        console.log(passwordBcrypt);
+        await db.updatePassword(passwordBcrypt, id);
+        console.log('contraseña actualizada')
+        utils.sendRecoveredPasswordMail(user.email, `http://${process.env.FRONTEND_DOMAIN}/login`)
     } catch (e) {
-        res.status(400).send('Los datos introducidos son incorrectos')
-        return
+            res.status(400).send({ error: 'Ha habido un error' })
+            return
+        }
+
+        res.send('Contraseña actualizada correctamente')
     }
 
-    const user = await db.getUserById(id)
+    const updateProfile = async (req, res) => {
+        const { id } = req.params
+        const decodedToken = req.auth
+        const { name, surnames, address, location, phone } = req.body
 
-    const passwordBcrypt = await bcrypt.hash(newPassword, 10);
+        try {
 
-    await db.updatePassword(id, passwordBcrypt)
-    utils.sendRecoveredPasswordMail(user.email, `http://${process.env.FRONTEND_DOMAIN}/login`)
+            await updateProfileValidator.validateAsync(req.body)
+            const user = await db.getUserById(id)
 
-    res.send('Contraseña actualizada correctamente')
-}
+            if (decodedToken.id !== user.id) {
+                res.status(400).send('Ha habido un error, inténtelo de nuevo')
+                return
+            }
 
-const updateProfile = async (req, res) => {
-    const { id } = req.params
-    const decodedToken = req.auth
-    const { name, surnames, address, location, phone } = req.body
+            await db.updateProfile(name, surnames, address, location, phone, id)
 
-    try {
+            if (req.files) {
+                // si hiciese falta comprobar la extensión del fichero
+                // podríamos hacerlo aquí a partir de la información de req.files
+                // y enviar un error si no es el tipo que nos interesa (res.status(400).send())
 
-        await updateProfileValidator.validateAsync(req.body)
-        const user = await db.getUserById(id)
+                await fsPromises.mkdir(`${process.env.TARGET_FOLDER}/profiles`, { recursive: true })
 
-        if (decodedToken.id !== user.id) {
+
+                const fileID = uuid.v4()
+                const outputFileName = `${process.env.TARGET_FOLDER}/profiles/${fileID}.jpg`
+
+                await fsPromises.writeFile(outputFileName, req.files.image.data)
+
+                await db.uploadProfilePhoto(outputFileName, decodedToken.id)
+            }
+
+        } catch (e) {
             res.status(400).send('Ha habido un error, inténtelo de nuevo')
             return
         }
 
-        await db.updateProfile(name, surnames, address, location, phone, id)
-
-        if (req.files) {
-            // si hiciese falta comprobar la extensión del fichero
-            // podríamos hacerlo aquí a partir de la información de req.files
-            // y enviar un error si no es el tipo que nos interesa (res.status(400).send())
-
-            await fsPromises.mkdir(`${process.env.TARGET_FOLDER}/profiles`, { recursive: true })
-
-
-            const fileID = uuid.v4()
-            const outputFileName = `${process.env.TARGET_FOLDER}/profiles/${fileID}.jpg`
-
-            await fsPromises.writeFile(outputFileName, req.files.image.data)
-
-            await db.uploadProfilePhoto(outputFileName, decodedToken.id)
-        }
-
-    } catch (e) {
-        res.status(400).send('Ha habido un error, inténtelo de nuevo')
-        return
+        res.send('Datos actualizados correctamente')
     }
 
-    res.send('Datos actualizados correctamente')
-}
+    const viewUserProfile = async (req, res) => {
+        const { id } = req.params
+        const decodedToken = req.auth
+        console.log('Aquí estoy!')
+        try {
+            if (decodedToken.id === parseInt(id)) {
+                const user = await db.getUserById(id)
 
-const viewUserProfile = async (req, res) => {
-    const { id } = req.params
-    const decodedToken = req.auth
-    console.log('Aquí estoy!')
-    try {
-        if (decodedToken.id === parseInt(id)) {
-            const user = await db.getUserById(id)
-            
-            const profile = {
-                name: user.name,
-                surnames: user.surnames,
-                address: user.address,
-                location: user.location,
-                phone: user.phone,
+                const profile = {
+                    name: user.name,
+                    surnames: user.surnames,
+                    address: user.address,
+                    location: user.location,
+                    phone: user.phone,
+                }
+                res.send(profile)
+                return
+            } else {
+                res.status(400).send()
+                return
             }
-            res.send(profile)
-            return
-        } else {
+        } catch (e) {
             res.status(400).send()
             return
         }
-    } catch (e) {
-        res.status(400).send()
-        return
-    }
-}
-
-const logout = async (req, res, next) => {
-
-    try {
-        const decodedToken = {}
-
-        req.auth = decodedToken;
-    } catch (e) {
-        res.status(401).send()
-        return
     }
 
-    res.send(req.auth)
-}
+    const logout = async (req, res, next) => {
+
+        try {
+            const decodedToken = {}
+
+            req.auth = decodedToken;
+        } catch (e) {
+            res.status(401).send()
+            return
+        }
+
+        res.send(req.auth)
+    }
 
 
 
-module.exports = {
-    goToUpdatePassword,
-    login,
-    logout,
-    recoverPassword,
-    register,
-    updateProfile,
-    updateRecoveredPassword,
-    updateUserPassword,
-    validateRegister,
-    viewUserProfile
-}
+    module.exports = {
+        goToUpdatePassword,
+        login,
+        logout,
+        recoverPassword,
+        register,
+        updateProfile,
+        updateRecoveredPassword,
+        updateUserPassword,
+        validateRegister,
+        viewUserProfile
+    }

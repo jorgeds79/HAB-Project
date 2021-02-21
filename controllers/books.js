@@ -325,7 +325,9 @@ const getBookInfo = async (req, res) => {
             'editorial': book.editorial,
             'editionYear': book.editionYear,
             'location': seller.location,
-            'price': book.price
+            'price': book.price,
+            'detail': book.detail,
+            'available': book.available
         }
 
         res.send(data)
@@ -343,8 +345,37 @@ const getBookInfo = async (req, res) => {
     }
 }
 
+const deleteBook = async (req, res) => {
+    const { id } = req.params
+    const decodedToken = req.auth
+
+    try {
+        const book = await db.getBook(id)
+
+        if (decodedToken.id !== book.id_user) {
+            res.status(400).send({ error: 'Operación no permitida' })
+            return
+        } else {
+            await db.deleteBook(id)
+        }
+
+    } catch (e) {
+        let statusCode = 400;
+        // averiguar el tipo de error para enviar un código u otro
+        if (e.message === 'database-error') {
+            statusCode = 500
+        }
+
+        res.status(statusCode).send(e.message)
+        return
+    }
+
+    res.send('Libro borrado correctamente')
+}
+
 module.exports = {
     addImageBook,
+    deleteBook,
     deleteImageBook,
     getListOfBooksOfUser,
     getPetitions,
