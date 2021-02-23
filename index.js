@@ -72,6 +72,7 @@ app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 // peticiones de tipo form-data, necesarias para enviar ficheros
 app.use(fileUpload());
+app.use('/images', express.static('images/books'))
 
 const DEFAULT_PORT = 3333
 
@@ -141,7 +142,7 @@ app.put('/user/profile/update/:id', isAuthenticated, updateProfile)
 /**
  * Subir un libro
  */
-app.post('/upload', isAuthenticated, uploadBook)
+app.post('/upload/book', isAuthenticated, uploadBook)
 /**
  * Endpoint encargado de verificar el codigo de
  * activación del libro enviado al email del 

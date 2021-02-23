@@ -67,7 +67,10 @@ async function main() {
         id integer auto_increment primary key,
         uuid varchar(100) not null,
         id_book integer not null,
+        main_photo boolean default false,
         visible boolean default true,
+        creation_date timestamp not null default current_timestamp,
+        update_date timestamp not null default current_timestamp on update current_timestamp,
         constraint images_idbook_fk1 foreign key (id_book)
 		      references books(id) on delete no action
       )

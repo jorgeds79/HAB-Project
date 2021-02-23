@@ -141,9 +141,9 @@ const deleteChatAsSeller = async (id, id_user) => {
     await performQuery(query, params)
 }
 
-const deleteImageBook = async (id) => {
-    const query = `update images set visible = false where id=?`
-    const params = [id]
+const deleteImageBook = async (uuid) => {
+    const query = `update images set visible = false where uuid=?`
+    const params = [uuid]
 
     await performQuery(query, params)
 }
@@ -183,6 +183,14 @@ const getBookByIdChat = async (id) => {
     const params = [id]
 
     const [result] = await performQuery(query, params)
+    return result
+}
+
+const getBookImages = async (id) => {
+    const query = `select * from images where id_book = ? and visible = true`
+    const params = [id]
+
+    const result = await performQuery(query, params)
     return result
 }
 
@@ -341,6 +349,20 @@ const sendMessage = async (id_chat, id_book, id_seller, id_buyer, id_destination
     await performQuery(query, params)
 }
 
+const setLastImageAsMain = async () => {
+    const query = `select * from images where id = (select MAX(id) from images)`
+    const params = []
+
+    const [result] = await performQuery(query, params)
+    console.log('hola')
+    console.log(result)
+
+    const query2 = `update images SET main_photo = true where uuid = ?`
+    const params2 = [result.uuid]
+
+    await performQuery(query2, params2)
+}
+
 const setMessagesToViewed = async (id_chat, idUser) => {
     const query = `update messages SET viewed = true where id_chat = ? and id_destination = ?`
     const params = [id_chat, idUser]
@@ -409,6 +431,13 @@ const uploadBook = async (isbn, title, course, editorial, editionYear, price, de
     const params = [idUser, isbn, title, course, editorial, editionYear, price, detail, activationCode]
 
     await performQuery(query, params)
+
+    const query_id = `SELECT MAX(id) AS id FROM books`
+    const params_id = []
+
+    const [result] = await performQuery(query_id, params_id)
+
+    return result
 }
 
 const uploadImage = async (uuid, id_book) => {
@@ -445,6 +474,7 @@ module.exports = {
     getAllMessagesOfUser,
     getBook,
     getBookByIdChat,
+    getBookImages,
     getBooksOfUser,
     getBuyerByIdChat,
     getImage,
@@ -462,6 +492,7 @@ module.exports = {
     register,
     searchBooksByLevel,
     sendMessage,
+    setLastImageAsMain,
     setMessagesToViewed,
     setPetitionOfUser,
     updateBook,

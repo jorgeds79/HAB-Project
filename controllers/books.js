@@ -13,13 +13,49 @@ const uploadBook = async (req, res) => {
     const decodedToken = req.auth
 
     try {
-        await bookValidator.validateAsync(req.body)
+        // await bookValidator.validateAsync(req.body)
 
         const activationCode = randomstring.generate(40);
 
-        await db.uploadBook(isbn, title, course, editorial, editionYear, price, detail, activationCode, decodedToken.id)
+        const { id } = await db.uploadBook(isbn, title, course, editorial, editionYear, price, detail, activationCode, decodedToken.id)
 
-        utils.sendReqAuthorizationMail(isbn, title, course, editorial, editionYear, price, detail, `http://${process.env.BACKEND_DOMAIN}/upload/activate/${activationCode}`)
+        let items = []
+        let exist = false
+        if (req.files && req.files.images.length) {
+            items = req.files.images.slice(0, 3)
+            exist = true
+        } else if (req.files) {
+            items.push(req.files.images)
+            exist = true
+        }
+
+        if (exist) {
+
+            await fsPromises.mkdir(`${process.env.TARGET_FOLDER}/books`, { recursive: true })
+            // si hiciese falta comprobar la extensión del fichero
+            // podríamos hacerlo aquí a partir de la información de req.files
+            // y enviar un error si no es el tipo que nos interesa (res.status(400).send())
+            for (let i = 0; i < items.length; i++) {
+                //SUBIMOS CADA FOTO DEL BUCLE
+                try {
+                    const fileID = uuid.v4()
+                    const outputFileName = `${process.env.TARGET_FOLDER}/books/${fileID}.jpg`
+
+                    await fsPromises.writeFile(outputFileName, items[i].data)
+
+                    await db.uploadImage(outputFileName, id)
+
+                    if (i === 0) {
+                        await db.setLastImageAsMain()
+                    }
+
+                } catch (error) {
+                    res.status(401).send({ error: 'Libro no subido' })
+                    return
+                }
+            }
+        }
+        //utils.sendReqAuthorizationMail(isbn, title, course, editorial, editionYear, price, detail, `http://${process.env.BACKEND_DOMAIN}/upload/activate/${activationCode}`)
 
     } catch (e) {
         let statusCode = 400;
@@ -32,7 +68,7 @@ const uploadBook = async (req, res) => {
         return
     }
 
-    res.send()
+    res.send('Libro subido correctamente')
 }
 
 const goToActivateBook = async (req, res) => {
@@ -46,7 +82,7 @@ const goToActivateBook = async (req, res) => {
             const user = await db.getUserById(book.id_user)
             utils.sendConfirmationUploadedMail(user.email, book.isbn, book.title, `http://${process.env.FRONTEND_DOMAIN}/login`)
         } else {
-            res.status(400).send('El código de activación es incorrecto')
+            res.status(400).send({ error: 'El código de activación es incorrecto' })
             return
         }
         // comprobamos posibles peticiones de usuarios de ese isbn
@@ -61,54 +97,70 @@ const goToActivateBook = async (req, res) => {
 
         res.send('Validado correctamente')
     } catch (e) {
-        res.status(401).send('Libro no validado')
+        res.status(401).send({ error: 'Libro no validado' })
     }
 }
 
 const updateBook = async (req, res) => {
     const { id } = req.params
-    const { isbn, title, course, editorial, editionYear, price, detail } = req.body
+    const { isbn, title, course, editorial, editionYear, price, detail, image0, image1, image2, oldImage0, oldImage1, oldImage2 } = req.body
     const decodedToken = req.auth
 
     try {
-        await bookValidator.validateAsync(req.body)
+        // await bookValidator.validateAsync(req.body)
 
         const book = await db.getBook(id)
 
         if (decodedToken.id !== book.id_user) {
-            res.status(400).send()
+            res.status(400).send({ error: 'Usuario no autorizado' })
             return
         }
 
         if (!book.available) {
-            res.status(400).send()
+            res.status(400).send({ error: 'Operación no permitida' })
             return
         }
 
-
-
         await db.updateBook(isbn, title, course, editorial, editionYear, price, detail, id)
 
-        if (req.files) {
+        let items = []
+        let exist = false
+        if (req.files && req.files.images.length) {
+            items = req.files.images.slice(0, 3)
+            exist = true
+        } else if (req.files) {
+            items.push(req.files.images)
+            exist = true
+        }
+
+        if (exist) {
+
+            await fsPromises.mkdir(`${process.env.TARGET_FOLDER}/books`, { recursive: true })
             // si hiciese falta comprobar la extensión del fichero
             // podríamos hacerlo aquí a partir de la información de req.files
             // y enviar un error si no es el tipo que nos interesa (res.status(400).send())
 
-            await fsPromises.mkdir(`${process.env.TARGET_FOLDER}/books`, { recursive: true })
-
-
-            const fileID = uuid.v4()
-            const outputFileName = `${process.env.TARGET_FOLDER}/books/${fileID}.jpg`
-
-            await fsPromises.writeFile(outputFileName, req.files.image.data)
-
-            // guardar una referencia a este UUID En la base de datos, de forma que
-            // cuando nos pidan la lista de nuestros recursos (productos, conciertos, etc) o 
-            // el detalle de uno de ellos, accedemos a la BBDD para leer los UUID, y después el
-            // front llamará al GET con el UUID correspondiente
-            await db.uploadImage(outputFileName, id)
+            let images = [image0, image1, image2]
+            let oldimages = [oldImage0 ? oldImage0 : '', oldImage1 ? oldImage1 : '', oldImage2 ? oldImage2 : '']
+            console.log('oldimages!!!!!!!!!!!!!!!!!!!!!!!!!')
+            console.log(oldimages)
+            let j = 0
+            for (let i = 0; i < images.length; i++) {
+                if (images[i] === 'changed') {
+                    const fileID = uuid.v4()
+                    const outputFileName = `${process.env.TARGET_FOLDER}/books/${fileID}.jpg`
+                    await fsPromises.writeFile(outputFileName, items[j].data)
+                    await db.uploadImage(outputFileName, id)
+                    j = j + 1
+                    if (oldimages[i]) {
+                        const uuid_image = `images/books/${oldimages[i].slice(29)}`
+                        await db.deleteImageBook(uuid_image)
+                        console.log(`${process.env.TARGET_FOLDER}/books/${oldimages[i].slice(29)}`)
+                        await fsPromises.unlink(`${process.env.TARGET_FOLDER}/books/${oldimages[i].slice(29)}`)
+                    }
+                }
+            }
         }
-
     } catch (e) {
         let statusCode = 400;
         // averiguar el tipo de error para enviar un código u otro
@@ -313,6 +365,18 @@ const getBookInfo = async (req, res) => {
             res.status(404).send('No se encuentran los datos')
             return
         }
+        const book_images = await db.getBookImages(id)
+        const images = []
+
+        if (book_images && book_images.length > 0) {
+            let route
+            for (let image of book_images) {
+                route = `http://localhost:9999/images/${image.uuid.slice(13)}`
+                images.push(route)
+            }
+        }
+        console.log('hola')
+        console.log(images)
         const seller = await db.getUserById(book.id_user)
 
         const data = {
@@ -327,7 +391,8 @@ const getBookInfo = async (req, res) => {
             'location': seller.location,
             'price': book.price,
             'detail': book.detail,
-            'available': book.available
+            'available': book.available,
+            'images': images
         }
 
         res.send(data)
