@@ -218,6 +218,14 @@ const getImage = async (id) => {
     return result
 }
 
+const getImageByUuid = async (uuid) => {
+    const query = `select * from images where uuid = ?`
+    const params = [uuid]
+
+    const [result] = await performQuery(query, params)
+    return result
+}
+
 const getListOfTransactionsOfUser = async (id) => {
     const query = `select * from transactions where id_book in (select id from books where id_user=?) or transactions.id_buyer=?`
     const params = [id, id]
@@ -478,6 +486,7 @@ module.exports = {
     getBooksOfUser,
     getBuyerByIdChat,
     getImage,
+    getImageByUuid,
     getListOfTransactionsOfUser,
     getMessageById,
     getMessagesOfChat,

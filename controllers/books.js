@@ -142,8 +142,7 @@ const updateBook = async (req, res) => {
 
             let images = [image0, image1, image2]
             let oldimages = [oldImage0 ? oldImage0 : '', oldImage1 ? oldImage1 : '', oldImage2 ? oldImage2 : '']
-            console.log('oldimages!!!!!!!!!!!!!!!!!!!!!!!!!')
-            console.log(oldimages)
+
             let j = 0
             for (let i = 0; i < images.length; i++) {
                 if (images[i] === 'changed') {
@@ -153,10 +152,10 @@ const updateBook = async (req, res) => {
                     await db.uploadImage(outputFileName, id)
                     j = j + 1
                     if (oldimages[i]) {
-                        const uuid_image = `images/books/${oldimages[i].slice(29)}`
+                        const uuid_image = `${process.env.TARGET_FOLDER}/books/${oldimages[i].slice(29)}`
                         await db.deleteImageBook(uuid_image)
                         console.log(`${process.env.TARGET_FOLDER}/books/${oldimages[i].slice(29)}`)
-                        await fsPromises.unlink(`${process.env.TARGET_FOLDER}/books/${oldimages[i].slice(29)}`)
+                        await fsPromises.unlink(uuid_image)
                     }
                 }
             }
@@ -228,30 +227,33 @@ const addImageBook = async (req, res) => {
 
 const deleteImageBook = async (req, res) => {
     const { id } = req.params
+    const { image } = req.body
     const decodedToken = req.auth
-
+    
     try {
-        const image = await db.getImage(id)
         let book = {}
-        if (image) {
-            book = await db.getBook(image.id_book)
+        if (image) book = await db.getBook(id)
+        else {
+            res.status(400).send({ error: 'Error en la petición' })
+            return
+        }
+        if (!book) res.status(400).send({ error: 'Error en la petición' })
+        if ((book && decodedToken.id !== book.id_user) || (book && !book.available)) {
+            res.status(400).send({ error: 'Usuario no autorizado' })
+            return
+        }
+
+        const uuid_image = `${process.env.TARGET_FOLDER}/books/${image.slice(29)}`
+
+        const imageToDelete = await db.getImageByUuid(uuid_image)
+        
+        if (imageToDelete.id_book === book.id) {
+            await db.deleteImageBook(uuid_image)
+            await fsPromises.unlink(uuid_image)
         } else {
-            res.status(400).send()
+            res.status(400).send({ error: 'Error en la petición' })
             return
         }
-
-        if (decodedToken.id !== book.id_user) {
-            res.status(400).send()
-            return
-        }
-
-        if (!book.available) {
-            res.status(400).send()
-            return
-        }
-
-        await db.deleteImageBook(id)
-
     } catch (e) {
         let statusCode = 400;
         // averiguar el tipo de error para enviar un código u otro
@@ -262,8 +264,7 @@ const deleteImageBook = async (req, res) => {
         res.status(statusCode).send(e.message)
         return
     }
-
-    res.send('Datos actualizados correctamente')
+    res.send('Imagen borrada correctamente')
 }
 
 const getListOfBooksOfUser = async (req, res) => {

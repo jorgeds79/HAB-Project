@@ -31,6 +31,7 @@ async function main() {
         email varchar(50) not null unique,
         password varchar(100) not null,
         active boolean default false,
+        ratings float,
         validationCode VARCHAR(100),
         expirationCodeDate timestamp,
         petition_book_1 varchar(30),
