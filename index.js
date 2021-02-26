@@ -19,7 +19,6 @@ const {
 } = require('./controllers/authentication')
 
 const {
-    addImageBook,
     deleteBook,
     deleteImageBook,
     getListOfBooksOfUser,
@@ -190,12 +189,6 @@ app.put('/update-book/:id', isAuthenticated, updateBook)
  * Borrar libro subido
  */
 app.put('/user/books/delete/:id', isAuthenticated, deleteBook)
-
-
-/**
- * Añadir foto de un libro
- */
-app.put('/update-book/images/:id', isAuthenticated, addImageBook)
 
 
 /**

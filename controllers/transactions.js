@@ -60,12 +60,13 @@ const confirmTransaction = async (req, res) => {
     const decodedToken = req.auth
 
     try {
-        const newDate = moment(date).format('YYYY-MM-DDThh:mm:ss.sssZ')
+        // const newDate = moment(date).format('YYYY-MM-DDThh:mm:ss.sssZ')
+        const newDate = `${date}:00.000Z`
         console.log(newDate)
         // antes de actualizar con lugar y fecha de entrega se valida que éstos vayan en el formato correcto
         // con un validator
         // await transferValidator.validateAsync(req.auth)
-        
+
         const transaction = await db.getTransaction(id)
         const book = await db.getBook(transaction.id_book)
         let buyer = await db.getUserById(transaction.id_buyer)
@@ -87,7 +88,7 @@ const confirmTransaction = async (req, res) => {
         // informativos, y se pasa el estado 
         // del libro a 'no disponible'
         const placeToSend = `"${place}"`
-        const dateToSend = `"${newDate.slice(0,10)} ${newDate.slice(11,19)}"`
+        const dateToSend = `"${newDate.slice(0, 10)} ${newDate.slice(11, 19)}"`
         await db.completeTransaction(placeToSend, dateToSend, id)
         //utils.sendCompletedTransactionMail(decodedToken.email, buyer.email, book.title, book.course, place, date, `http://${process.env.FRONTEND_DOMAIN}/login`)
         await db.deleteBook(transaction.id_book)
@@ -125,7 +126,7 @@ const cancelTransaction = async (req, res) => {
         const buyer = await db.getUserById(transaction.id_buyer)
 
         if (transaction.status !== 'en proceso') {
-            res.status(400).send()
+            res.status(400).send({ error: 'Error en la petición' })
             return
         }
         // Verificamos que el usuario que cancela
@@ -163,10 +164,13 @@ const getListOfTransactions = async (req, res) => {
                 const seller = await db.getSellerByIdBook(transaction.id_book)
                 const buyer = await db.getUserById(transaction.id_buyer)
                 let dato
+                let review_date
                 if (transaction.transfer_date) {
                     dato = `${transaction.transfer_date.toISOString().slice(0, 10)} a las ${transaction.transfer_date.toISOString().slice(11, 16)}`
+                    review_date = transaction.transfer_date.setDate(transaction.transfer_date.getDate() + 1)
                 } else {
                     dato = transaction.transfer_date
+                    review_date = transaction.transfer_date
                 }
 
                 const input = {
@@ -175,7 +179,7 @@ const getListOfTransactions = async (req, res) => {
                     'status': transaction.status,
                     'transfer_place': transaction.transfer_place,
                     'transfer_date': dato,
-                    'book_id': book.id,
+                    review_date,
                     'book_title': book.title,
                     'book_isbn': book.isbn,
                     'book_course': book.course,
@@ -295,22 +299,43 @@ const putReviewToSeller = async (req, res) => {
     const { id } = req.params;
     const { review } = req.body
     const decodedToken = req.auth
-    const now = new Date();
-    console.log(now)
+    
     try {
         const transaction = await db.getTransaction(id)
 
-        if (transaction.id_buyer !== decodedToken.id) {
-            res.status(400).send()
+        if (!transaction || transaction.id_buyer !== decodedToken.id) {
+            res.status(400).send({ error: 'Error en la petición' })
             return
         }
 
-        if (transaction.transfer_date > now) {
-            res.send('No es posible realizar la valoración antes de realizar la entrega')
-            return
-        }
-        await db.updateTransactionWithReview(id, review)
-        res.send()
+        // await db.updateTransactionWithReview(review, id)
+
+        // const seller = await db.getSellerByIdBook(transaction.id_book)
+        // const listOfrewiews = await db.getReviewsOfUser(seller.id)
+        // console.log(listOfrewiews)
+        // let average = 0
+        // if (listOfrewiews.length > 0) {
+        //     let sumaReviews = 0
+        //     for (let item of listOfrewiews) {
+        //         sumaReviews = sumaReviews + item.review
+        //     }
+        //     average = (sumaReviews/listOfrewiews.length).toFixed(1)
+        // } else {
+        //     res.status(400).send({ error: 'Error en la petición' })
+        //     return
+        // }
+
+        // await db.updateSellerReview(average, seller.id)
+
+        const number = 7.5/2
+        const unidades = number.split('.')
+        console.log('holaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+        console.log(number)
+        console.log(unidades[0])
+        console.log(unidades[1])
+
+
+        res.send('Valoración enviada con éxito')
     } catch (e) {
         let statusCode = 400;
         // averiguar el tipo de error para enviar un código u otro

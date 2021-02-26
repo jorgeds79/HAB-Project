@@ -258,6 +258,14 @@ const getPetitionsOfUser = async (id) => {
     return result
 }
 
+const getReviewsOfUser = async (id) => {
+    const query = `select * from transactions where id_book in (select id from books where id_user=?) having status='completado' and review is not null`
+    const params = [id]
+
+    const result = await performQuery(query, params)
+    return result
+}
+
 const getSellerByIdBook = async (id) => {
     const query = `select * from users where id = (select id_user from books where id=?)`
     const params = [id]
@@ -419,7 +427,16 @@ const updateProfile = async (name, surnames, address, location, phone, id) => {
     await performQuery(query, params)
 }
 
-const updateTransactionWithReview = async (id, review) => {
+const updateSellerReview = async (average, id) => {
+    const query = `update users SET ratings = ? where id=?`
+    const params = [average, id]
+
+    await performQuery(query, params)
+}
+
+const updateTransactionWithReview = async (review, id) => {
+    console.log('¡¡¡Reviewwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww')
+    console.log(review)
     const query = `update transactions SET review = ? where id=?`
     const params = [review, id]
 
@@ -491,6 +508,7 @@ module.exports = {
     getMessageById,
     getMessagesOfChat,
     getPetitionsOfUser,
+    getReviewsOfUser,
     getSellerByIdBook,
     getSellerByIdChat,
     getSellerAndBuyerOfChat,
@@ -507,6 +525,7 @@ module.exports = {
     updateBook,
     updatePassword,
     updateProfile,
+    updateSellerReview,
     updateTransactionWithReview,
     updateValidationCode,
     uploadBook,

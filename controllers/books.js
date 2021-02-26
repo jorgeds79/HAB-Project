@@ -154,7 +154,6 @@ const updateBook = async (req, res) => {
                     if (oldimages[i]) {
                         const uuid_image = `${process.env.TARGET_FOLDER}/books/${oldimages[i].slice(29)}`
                         await db.deleteImageBook(uuid_image)
-                        console.log(`${process.env.TARGET_FOLDER}/books/${oldimages[i].slice(29)}`)
                         await fsPromises.unlink(uuid_image)
                     }
                 }
@@ -174,62 +173,11 @@ const updateBook = async (req, res) => {
     res.send('Datos actualizados correctamente')
 }
 
-const addImageBook = async (req, res) => {
-    const { id } = req.params
-    const decodedToken = req.auth
-
-    try {
-        const book = await db.getBook(id)
-
-        if (decodedToken.id !== book.id_user) {
-            res.status(400).send()
-            return
-        }
-
-        if (!book.available) {
-            res.status(400).send()
-            return
-        }
-
-        if (req.files) {
-            // si hiciese falta comprobar la extensión del fichero
-            // podríamos hacerlo aquí a partir de la información de req.files
-            // y enviar un error si no es el tipo que nos interesa (res.status(400).send())
-
-            await fsPromises.mkdir(`${process.env.TARGET_FOLDER}/books`, { recursive: true })
-
-
-            const fileID = uuid.v4()
-            const outputFileName = `${process.env.TARGET_FOLDER}/books/${fileID}.jpg`
-
-            await fsPromises.writeFile(outputFileName, req.files.image.data)
-
-            // guardar una referencia a este UUID En la base de datos, de forma que
-            // cuando nos pidan la lista de nuestros recursos (productos, conciertos, etc) o 
-            // el detalle de uno de ellos, accedemos a la BBDD para leer los UUID, y después el
-            // front llamará al GET con el UUID correspondiente
-            await db.uploadImage(outputFileName, id)
-        }
-
-    } catch (e) {
-        let statusCode = 400;
-        // averiguar el tipo de error para enviar un código u otro
-        if (e.message === 'database-error') {
-            statusCode = 500
-        }
-
-        res.status(statusCode).send(e.message)
-        return
-    }
-
-    res.send('Datos actualizados correctamente')
-}
-
 const deleteImageBook = async (req, res) => {
     const { id } = req.params
     const { image } = req.body
     const decodedToken = req.auth
-    
+
     try {
         let book = {}
         if (image) book = await db.getBook(id)
@@ -246,7 +194,7 @@ const deleteImageBook = async (req, res) => {
         const uuid_image = `${process.env.TARGET_FOLDER}/books/${image.slice(29)}`
 
         const imageToDelete = await db.getImageByUuid(uuid_image)
-        
+
         if (imageToDelete.id_book === book.id) {
             await db.deleteImageBook(uuid_image)
             await fsPromises.unlink(uuid_image)
@@ -269,15 +217,28 @@ const deleteImageBook = async (req, res) => {
 
 const getListOfBooksOfUser = async (req, res) => {
     const decodedToken = req.auth
-    console.log(req.auth)
+
     try {
         const books = await db.getBooksOfUser(decodedToken.id)
-        if (books.length !== 0) {
-            res.send(books)
-            return
-        } else {
+        if (books.length === 0) {
             res.send('No tienes libros subidos')
+            return
         }
+
+        let booksToSend = []
+
+        for (let book of books) {
+            const book_images = await db.getBookImages(book.id)
+            let route_image
+            if (book_images && book_images.length > 0) route_image = `http://localhost:9999/images/${book_images[0].uuid.slice(13)}`
+            else route_image = ''
+            const data = { ...book, image: route_image }
+            booksToSend.push(data)
+        }
+
+        res.send(booksToSend)
+        return
+
 
     } catch (e) {
         let statusCode = 400;
@@ -338,7 +299,7 @@ const setPetition = async (req, res) => {
 
 const searchByLevel = async (req, res) => {
     const { level } = req.params
-    console.log(level)
+
     try {
         const books = await db.searchBooksByLevel(level)
 
@@ -363,7 +324,10 @@ const getBookInfo = async (req, res) => {
     try {
         const book = await db.getBook(id)
         if (!book) {
-            res.status(404).send('No se encuentran los datos')
+            res.status(404).send({ error: 'No se encuentran los datos' })
+            return
+        } else if (book.available === false) {
+            res.status(400).send({ error: 'No se encuentran los datos' })
             return
         }
         const book_images = await db.getBookImages(id)
@@ -376,9 +340,21 @@ const getBookInfo = async (req, res) => {
                 images.push(route)
             }
         }
-        console.log('hola')
-        console.log(images)
+
         const seller = await db.getUserById(book.id_user)
+
+        let rating
+        if (seller.ratings !== null) {
+            rating = seller.ratings
+            let decimales
+            let unidades
+            let numero = `${rating}`.split('.')
+            unidades = parseInt(numero[0])
+            if (parseInt(numero[1]) < 25) decimales = 0
+            else if (parseInt(numero[1]) < 75) decimales = 5
+            else unidades = unidades > 4 ? unidades : unidades + 1
+            rating = parseFloat(`${unidades}.${decimales}`)
+        }
 
         const data = {
             'id': id,
@@ -393,7 +369,9 @@ const getBookInfo = async (req, res) => {
             'price': book.price,
             'detail': book.detail,
             'available': book.available,
-            'images': images
+            'images': images,
+            'ratings': seller.ratings,
+            'stars_rating': rating
         }
 
         res.send(data)
@@ -425,6 +403,16 @@ const deleteBook = async (req, res) => {
             await db.deleteBook(id)
         }
 
+        let cancelled = await db.getTransactionsToCancel(id)
+
+        if (cancelled) {
+            for (let item of cancelled) {
+                let buyer = await db.getUserById(item.id_buyer)
+                await db.cancelTransaction(item.id)
+                // utils.sendCanceledTransactionMail(decodedToken.email, buyer.email, book.title, book.course, id, `http://${process.env.FRONTEND_DOMAIN}/login`)
+            }
+        }
+
     } catch (e) {
         let statusCode = 400;
         // averiguar el tipo de error para enviar un código u otro
@@ -440,7 +428,6 @@ const deleteBook = async (req, res) => {
 }
 
 module.exports = {
-    addImageBook,
     deleteBook,
     deleteImageBook,
     getListOfBooksOfUser,
