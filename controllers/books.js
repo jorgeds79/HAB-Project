@@ -312,10 +312,11 @@ const searchByLevel = async (req, res) => {
 
         for (let book of books) {
             const book_images = await db.getBookImages(book.id)
+            const user = await db.getUserById(book.id_user)
             let route_image
             if (book_images && book_images.length > 0) route_image = `http://localhost:9999/images/${book_images[0].uuid.slice(13)}`
             else route_image = ''
-            const data = { ...book, image: route_image }
+            const data = { ...book, image: route_image, location: user.location }
             booksToSend.push(data)
         }
 
