@@ -299,6 +299,8 @@ const putReviewToSeller = async (req, res) => {
     const { id } = req.params;
     const { review } = req.body
     const decodedToken = req.auth
+
+    console.log(req.body)
     
     try {
         const transaction = await db.getTransaction(id)

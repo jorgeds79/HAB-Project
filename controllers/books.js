@@ -302,8 +302,24 @@ const searchByLevel = async (req, res) => {
 
     try {
         const books = await db.searchBooksByLevel(level)
+        
+        if (books.length === 0) {
+            res.send('No se encontraron resultados')
+            return
+        }
 
-        res.send(books)
+        let booksToSend = []
+
+        for (let book of books) {
+            const book_images = await db.getBookImages(book.id)
+            let route_image
+            if (book_images && book_images.length > 0) route_image = `http://localhost:9999/images/${book_images[0].uuid.slice(13)}`
+            else route_image = ''
+            const data = { ...book, image: route_image }
+            booksToSend.push(data)
+        }
+
+        res.send(booksToSend)
         return
 
     } catch (e) {
@@ -345,16 +361,21 @@ const getBookInfo = async (req, res) => {
 
         let rating
         if (seller.ratings !== null) {
-            rating = seller.ratings
-            let decimales
+            rating = `${parseFloat(seller.ratings).toFixed(2)}`
+            let decimal
             let unidades
             let numero = `${rating}`.split('.')
             unidades = parseInt(numero[0])
-            if (parseInt(numero[1]) < 25) decimales = 0
-            else if (parseInt(numero[1]) < 75) decimales = 5
-            else unidades = unidades > 4 ? unidades : unidades + 1
-            rating = parseFloat(`${unidades}.${decimales}`)
+            if (parseInt(numero[1]) < 3) decimal = 0
+            else if (parseInt(numero[1]) < 8) decimal = 5
+            else {
+                unidades = unidades > 4 ? unidades : unidades + 1
+                decimal = 0
+            }
+            rating = parseFloat(`${unidades}.${decimal}`)
         }
+        console.log(seller.ratings)
+        console.log(rating)
 
         const data = {
             'id': id,
