@@ -302,7 +302,7 @@ const searchByLevel = async (req, res) => {
 
     try {
         const books = await db.searchBooksByLevel(level)
-        
+
         if (books.length === 0) {
             res.send('No se encontraron resultados')
             return
@@ -360,24 +360,6 @@ const getBookInfo = async (req, res) => {
 
         const seller = await db.getUserById(book.id_user)
 
-        let rating
-        if (seller.ratings !== null) {
-            rating = `${parseFloat(seller.ratings).toFixed(2)}`
-            let decimal
-            let unidades
-            let numero = `${rating}`.split('.')
-            unidades = parseInt(numero[0])
-            if (parseInt(numero[1]) < 3) decimal = 0
-            else if (parseInt(numero[1]) < 8) decimal = 5
-            else {
-                unidades = unidades > 4 ? unidades : unidades + 1
-                decimal = 0
-            }
-            rating = parseFloat(`${unidades}.${decimal}`)
-        }
-        console.log(seller.ratings)
-        console.log(rating)
-
         const data = {
             'id': id,
             'id_seller': seller.id,
@@ -393,7 +375,6 @@ const getBookInfo = async (req, res) => {
             'available': book.available,
             'images': images,
             'ratings': seller.ratings,
-            'stars_rating': rating
         }
 
         res.send(data)

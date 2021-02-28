@@ -125,6 +125,7 @@ const getChatMessages = async (req, res) => {
     const seller = await db.getSellerByIdChat(id)
     const buyer = await db.getBuyerByIdChat(id)
     try {
+        await db.setMessagesToViewed(id, decodedToken.id)
         // obtenemos los mensajes pertenecientes
         // al usuario y filtramos por id del chat 
         const allMessages = await db.getAllMessagesOfUser(decodedToken.id)
@@ -132,8 +133,6 @@ const getChatMessages = async (req, res) => {
             .filter((message) => ((message.id_seller === decodedToken.id) && message.visibleForSeller) ||
                 ((message.id_buyer === decodedToken.id) && message.visibleForBuyer))
             .filter((message) => message.id_chat === id)
-
-        await db.setMessagesToViewed(id, decodedToken.id)
 
         let listOfMessagesTosend = []
         for (let message of chatMessages) {
@@ -148,6 +147,7 @@ const getChatMessages = async (req, res) => {
                 'id_buyer': buyer.id,
                 'buyer_name': buyer.name,
                 'id_destination': message.id_destination,
+                'viewed': message.viewed,
                 'content': message.content,
                 'date': `${message.creation_date.toISOString().slice(0, 10)} a las ${message.creation_date.toISOString().slice(11, 16)}`
             }

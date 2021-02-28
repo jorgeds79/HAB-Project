@@ -365,20 +365,6 @@ const sendMessage = async (id_chat, id_book, id_seller, id_buyer, id_destination
     await performQuery(query, params)
 }
 
-const setLastImageAsMain = async () => {
-    const query = `select * from images where id = (select MAX(id) from images)`
-    const params = []
-
-    const [result] = await performQuery(query, params)
-    console.log('hola')
-    console.log(result)
-
-    const query2 = `update images SET main_photo = true where uuid = ?`
-    const params2 = [result.uuid]
-
-    await performQuery(query2, params2)
-}
-
 const setMessagesToViewed = async (id_chat, idUser) => {
     const query = `update messages SET viewed = true where id_chat = ? and id_destination = ?`
     const params = [id_chat, idUser]
@@ -519,7 +505,6 @@ module.exports = {
     register,
     searchBooksByLevel,
     sendMessage,
-    setLastImageAsMain,
     setMessagesToViewed,
     setPetitionOfUser,
     updateBook,
