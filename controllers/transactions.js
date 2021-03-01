@@ -300,8 +300,6 @@ const putReviewToSeller = async (req, res) => {
     const { review } = req.body
     const decodedToken = req.auth
 
-    console.log(req.body)
-    
     try {
         const transaction = await db.getTransaction(id)
 
@@ -310,34 +308,24 @@ const putReviewToSeller = async (req, res) => {
             return
         }
 
-        // await db.updateTransactionWithReview(review, id)
+        await db.updateTransactionWithReview(review, id)
 
-        // const seller = await db.getSellerByIdBook(transaction.id_book)
-        // const listOfrewiews = await db.getReviewsOfUser(seller.id)
-        // console.log(listOfrewiews)
-        // let average = 0
-        // if (listOfrewiews.length > 0) {
-        //     let sumaReviews = 0
-        //     for (let item of listOfrewiews) {
-        //         sumaReviews = sumaReviews + item.review
-        //     }
-        //     average = (sumaReviews/listOfrewiews.length).toFixed(1)
-        // } else {
-        //     res.status(400).send({ error: 'Error en la petición' })
-        //     return
-        // }
+        const seller = await db.getSellerByIdBook(transaction.id_book)
+        const listOfreviews = await db.getReviewsOfUser(seller.id)
+        let average = 0
+        if (listOfreviews.length > 0) {
+            let sumaReviews = 0
+            for (let item of listOfreviews) {
+                sumaReviews = sumaReviews + item.review
+            }
+            average = (sumaReviews / listOfreviews.length).toFixed(1)
+        } else {
+            res.status(400).send({ error: 'Error en la petición' })
+            return
+        }
 
-        // await db.updateSellerReview(average, seller.id)
-
-        const number = 7.5/2
-        const unidades = number.split('.')
-        console.log('holaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
-        console.log(number)
-        console.log(unidades[0])
-        console.log(unidades[1])
-
-
-        res.send('Valoración enviada con éxito')
+        await db.updateSellerReview(average, seller.id)
+        
     } catch (e) {
         let statusCode = 400;
         // averiguar el tipo de error para enviar un código u otro
@@ -348,6 +336,7 @@ const putReviewToSeller = async (req, res) => {
         res.status(statusCode).send(e.message)
         return
     }
+    res.send('Valoración enviada con éxito')
 }
 
 
